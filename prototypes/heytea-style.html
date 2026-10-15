@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>妙回 · 手绘涂鸦方向（喜茶语言）</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/zcool-kuaile@5/index.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/caveat@5/index.css">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { -webkit-font-smoothing: antialiased; }
+  body {
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+    color: #171717; background: #EFEDE8;
+  }
+  .hand { font-family: "ZCOOL KuaiLe", "PingFang SC", "Microsoft YaHei", sans-serif; font-weight: 400; }
+  .hen { font-family: "Caveat", "ZCOOL KuaiLe", cursive; }
+
+  /* ===== 外壳切换条（不属于设计本身） ===== */
+  .chrome { position: sticky; top: 0; z-index: 60; background: rgba(239,237,232,.94); backdrop-filter: blur(14px); border-bottom: 1px solid rgba(0,0,0,.1); padding: 13px 26px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .chrome .ct { font-size: 12px; letter-spacing: 2px; color: #6B6A66; }
+  .chrome .tabs { display: flex; gap: 8px; }
+  .chrome button { font-family: inherit; font-size: 13px; padding: 8px 18px; border-radius: 999px; border: 1px solid rgba(0,0,0,.16); background: #fff; cursor: pointer; transition: .22s; }
+  .chrome button.on { background: #171717; border-color: #171717; color: #fff; }
+  .chrome .tip { font-size: 11px; color: #8A8983; margin-left: auto; }
+  .capsule { max-width: 1080px; margin: 0 auto; padding: 22px 22px 90px; }
+  .stage { display: none; }
+  .stage.on { display: block; animation: pop .5s cubic-bezier(.22,1,.36,1) both; }
+  @keyframes pop { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+  .cap { display: flex; align-items: baseline; gap: 13px; flex-wrap: wrap; margin: 0 0 14px 4px; }
+  .cap h2 { font-size: 16px; font-weight: 600; }
+  .cap .ref { font-size: 12px; color: #6B6A66; }
+  .cap .kw { font-size: 11.5px; color: #171717; background: #fff; border: 1px solid rgba(0,0,0,.12); border-radius: 999px; padding: 3px 11px; }
+  .page { background: #fff; border: 1px solid rgba(0,0,0,.1); border-radius: 4px; overflow: hidden; }
+  .doodle { display: block; }
+
+  /* ============ 通用：喜茶式导航 ============ */
+  .nav { display: flex; align-items: center; justify-content: space-between; padding: 22px 40px; }
+  .nav .logo { width: 46px; }
+  .nav .links { display: flex; gap: 34px; font-size: 15px; color: #171717; }
+  .nav .links span { cursor: pointer; }
+  .nav .lang { font-size: 13px; color: #6E6E6E; display: flex; align-items: center; gap: 6px; }
+
+  /* ============================================================
+     E1 · 忠实还原版（接近官网的稀疏叙事）
+     ============================================================ */
+  .e1 .hero { position: relative; padding: 30px 40px 90px; min-height: 430px; }
+  .e1 .hero .d-left { position: absolute; left: 74px; top: 34px; width: 168px; }
+  .e1 .hero .d-right { position: absolute; right: 96px; top: 22px; width: 152px; }
+  .e1 .hero .slogan { position: absolute; left: 50%; top: 96px; transform: translateX(-46%); text-align: center; }
+  .e1 .hero .slogan .zh { font-size: 40px; line-height: 1.5; letter-spacing: 3px; }
+  .e1 .hero .slogan .en { font-size: 27px; color: #6E6E6E; margin-top: 12px; letter-spacing: 1px; }
+  .e1 .hero .chev { position: absolute; left: 50%; bottom: 34px; transform: translateX(-50%); }
+
+  .e1 .sec { padding: 0 40px 96px; }
+  .e1 .sec-title { font-size: 38px; line-height: 1.5; }
+  .e1 .sub { font-size: 14px; color: #767676; margin-top: 14px; }
+  .e1 .lead { max-width: 300px; font-size: 14px; line-height: 2; color: #5A5A5A; }
+  .e1 .split { display: flex; gap: 60px; align-items: flex-start; }
+  .e1 .store { width: 240px; }
+  .e1 .store .shot { width: 100%; height: 150px; background: #EDEBE7; display: flex; align-items: center; justify-content: center; font-size: 11px; color: #9C9A95; }
+  .e1 .store .n { font-size: 14px; margin-top: 12px; }
+  .e1 .store .m { font-size: 11.5px; color: #9C9A95; margin-top: 4px; }
+
+  .e1 .steps { display: flex; gap: 76px; flex-wrap: wrap; margin-top: 34px; }
+  .e1 .step { max-width: 240px; }
+  .e1 .step .n { font-size: 13px; color: #B4B2AD; letter-spacing: 1px; }
+  .e1 .step h4 { font-size: 22px; margin: 8px 0 10px; }
+  .e1 .step p { font-size: 13.5px; line-height: 1.95; color: #6E6E6E; }
+  .e1 .more { margin-top: 46px; display: flex; align-items: center; gap: 12px; font-size: 21px; }
+  .e1 .more span { color: #171717; }
+
+  /* ============================================================
+     E2 · 工具适配版（同气质，密度够用）
+     ============================================================ */
+  .e2 .hero { position: relative; padding: 18px 40px 46px; }
+  .e2 .hero .d-right { position: absolute; right: 60px; top: -6px; width: 122px; }
+  .e2 .hero .zh { font-size: 40px; line-height: 1.45; letter-spacing: 2px; }
+  .e2 .hero .en { font-size: 22px; color: #6E6E6E; margin-top: 8px; }
+  .e2 .body { padding: 0 40px 60px; }
+  .e2 .blk { position: relative; padding: 26px 0 30px; }
+  .e2 .blk .hd { display: flex; align-items: baseline; gap: 12px; margin-bottom: 20px; }
+  .e2 .blk .no { font-size: 13px; color: #B4B2AD; }
+  .e2 .blk h3 { font-size: 25px; }
+  .e2 .blk .opt { font-size: 12px; color: #B4B2AD; }
+  .e2 .wavy { width: 100%; height: 12px; margin-top: 12px; }
+  .e2 .field { font-size: 15px; color: #9C9A95; padding: 6px 0 12px; line-height: 1.9; }
+  .e2 .picks { display: flex; flex-wrap: wrap; gap: 8px 30px; padding-top: 2px; }
+  .e2 .pick { font-size: 19px; color: #A8A6A1; cursor: pointer; position: relative; padding-bottom: 6px; }
+  .e2 .pick.on { color: #171717; }
+  .e2 .pick .ul { position: absolute; left: -3px; bottom: 0; width: calc(100% + 6px); height: 9px; }
+  .e2 .go { display: flex; align-items: center; gap: 16px; padding: 30px 0 6px; }
+  .e2 .go .txt { font-size: 30px; letter-spacing: 3px; }
+  .e2 .res { padding: 8px 0 0; }
+  .e2 .r { display: flex; gap: 26px; padding: 26px 0; border-top: 1px solid #EBE9E5; }
+  .e2 .r .n { font-size: 30px; color: #C4C2BD; line-height: 1; width: 52px; flex: none; }
+  .e2 .r .t { font-size: 21px; line-height: 1.7; }
+  .e2 .r .s { font-size: 12.5px; color: #9C9A95; margin-top: 9px; }
+  .e2 .foot { display: flex; align-items: center; gap: 12px; margin-top: 34px; font-size: 20px; color: #171717; }
+  .e2 .privacy { font-size: 12px; color: #B4B2AD; margin-top: 40px; }
+
+  @media (max-width: 780px) {
+    .nav { padding: 16px 20px; } .nav .links { gap: 18px; font-size: 13px; }
+    .e1 .hero, .e1 .sec, .e2 .hero, .e2 .body { padding-left: 20px; padding-right: 20px; }
+    .e1 .hero { min-height: 520px; }
+    .e1 .hero .d-left { width: 120px; left: 20px; top: 120px; }
+    .e1 .hero .d-right { width: 110px; right: 20px; top: 300px; }
+    .e1 .hero .slogan { position: static; transform: none; text-align: left; }
+    .e1 .hero .slogan .zh { font-size: 32px; }
+    .e1 .hero .chev { display: none; }
+    .e1 .split { flex-direction: column; gap: 30px; }
+    .e1 .steps { gap: 34px; }
+    .e2 .hero .d-right { position: static; width: 100px; margin: 10px 0 0; }
+    .e2 .hero .zh { font-size: 31px; }
+    .e2 .blk h3 { font-size: 21px; }
+    .e2 .pick { font-size: 16px; }
+    .e2 .go .txt { font-size: 24px; }
+    .e2 .r .t { font-size: 18px; }
+  }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <filter id="rough">
+    <feTurbulence type="fractalNoise" baseFrequency="0.014" numOctaves="2" seed="7" result="n"/>
+    <feDisplacementMap in="SourceGraphic" in2="n" scale="2.6" xChannelSelector="R" yChannelSelector="G"/>
+  </filter>
+</svg>
+
+<div class="chrome">
+  <span class="ct">妙回 · 喜茶语言</span>
+  <div class="tabs" id="tabs">
+    <button data-t="E1" class="on">E1 忠实还原版</button>
+    <button data-t="E2">E2 工具适配版</button>
+  </div>
+  <span class="tip">线上版本未改动 · 这是原型</span>
+</div>
+
+<div class="capsule">
+
+<!-- ================= E1 ================= -->
+<section class="stage on" id="sE1">
+  <div class="cap">
+    <h2>E1 · 忠实还原版</h2>
+    <span class="ref">照喜茶官网的密度与构图做</span>
+    <span class="kw">手绘涂鸦</span><span class="kw">手写大字</span><span class="kw">反网格</span>
+  </div>
+  <div class="page e1">
+    <div class="nav">
+      <svg class="logo" viewBox="0 0 60 52" fill="none" stroke="#171717" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <g filter="url(#rough)">
+          <path d="M16 22 C12 8 26 2 36 6 C45 10 47 20 43 27 C39 21 32 18 24 19 C20 19.6 17.6 20.6 16 22 Z" fill="#171717" stroke="none"/>
+          <path d="M16 22 C15 30 19 35 26 37 C30 34 32 29 32 24"/>
+          <path d="M21 23 C23.5 25.6 27 25.6 29.5 23"/>
+          <path d="M26 37 C34 41 41 39 46 33 M46 33 L52 21"/>
+          <path d="M48 19 L6 25 L9 39 L51 33 Z" fill="#fff"/>
+          <circle cx="17" cy="29" r="1.7" fill="#171717"/><circle cx="25" cy="28" r="1.7" fill="#171717"/><circle cx="21" cy="35" r="1.7" fill="#171717"/>
+        </g>
+      </svg>
+      <div class="links"><span>怎么用</span><span>风格档案</span><span>隐私</span><span>登录同步</span></div>
+      <div class="lang">◍ 简体中文</div>
+    </div>
+
+    <div class="hero">
+      <svg class="doodle d-left" viewBox="0 0 180 150" fill="none" stroke="#171717" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+        <g filter="url(#rough)">
+          <path d="M40 62 C32 32 62 16 86 24 C106 31 110 50 102 64 C94 52 82 46 68 48 C56 50 46 54 40 62 Z" fill="#171717" stroke="none"/>
+          <path d="M40 62 C38 76 44 86 56 90 M56 90 C62 84 66 74 66 64"/>
+          <path d="M48 64 C52 68 58 68 62 64"/>
+          <path d="M58 92 C72 98 84 94 92 84 M92 84 L104 62"/>
+          <path d="M96 60 L126 54 L132 78 L104 84 Z" fill="#fff"/>
+          <circle cx="110" cy="68" r="2.3" fill="#171717"/><circle cx="119" cy="66" r="2.3" fill="#171717"/><circle cx="115" cy="76" r="2.3" fill="#171717"/>
+          <path d="M56 90 C44 102 40 118 40 134 M74 94 C86 104 92 118 94 132"/>
+        </g>
+      </svg>
+
+      <svg class="doodle d-right" viewBox="0 0 170 130" fill="none" stroke="#171717" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+        <g filter="url(#rough)">
+          <path d="M22 34 C20 20 34 12 68 12 C104 12 118 22 116 36 C114 50 96 56 64 56 C57 56 51 55 46 54 L34 66 L37 52 C28 48 23 41 22 34 Z" fill="#fff"/>
+          <path d="M44 26 C60 24 76 24 92 26 M44 34 C58 32 74 32 88 34 M44 42 C56 40 68 40 78 42"/>
+          <path d="M136 76 C130 88 122 96 112 100 M112 100 L124 98 M112 100 L118 88"/>
+          <path d="M150 44 l3 7 7 3 -7 3 -3 7 -3 -7 -7 -3 7 -3 z" fill="#171717" stroke="none"/>
+          <path d="M18 92 C26 88 34 90 38 96 C34 102 26 104 18 100 Z"/>
+          <path d="M20 96 C28 94 34 95 36 96"/>
+        </g>
+      </svg>
+
+      <div class="slogan">
+        <div class="zh hand">把消息 回得漂亮</div>
+        <div class="en hen">reply, in your own voice</div>
+      </div>
+
+      <svg class="doodle chev" width="30" height="24" viewBox="0 0 30 24" fill="none" stroke="#171717" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+        <g filter="url(#rough)"><path d="M4 6 C10 14 15 18 15 18 C15 18 20 13 26 6"/></g>
+      </svg>
+    </div>
+
+    <div class="sec">
+      <div class="split">
+        <div>
+          <div class="sec-title hand">我们想帮你<br>把话说清楚</div>
+          <div class="sub">先想清楚要什么，再决定怎么说</div>
+        </div>
+        <div class="lead" style="max-width:340px">
+          很多时候你不是不会说话。你只是没想清楚这条消息想达到什么效果——
+          所以这里不给你「万能回复」，它先问你意图。
+        </div>
+      </div>
+      <svg class="wavy" style="width:220px;margin-top:34px" viewBox="0 0 220 12" fill="none" stroke="#171717" stroke-width="2.2" stroke-linecap="round"><path d="M2 8 q13 -9 26 0 t26 0 t26 0 t26 0 t26 0 t26 0"/></svg>
+    </div>
+
+    <div class="sec">
+      <div class="sec-title hand">怎么用</div>
+      <svg class="wavy" style="width:110px;margin-top:16px" viewBox="0 0 110 12" fill="none" stroke="#171717" stroke-width="2.2" stroke-linecap="round"><path d="M2 8 q13 -9 26 0 t26 0 t26 0 t26 0"/></svg>
+      <div class="steps">
+        <div class="step">
+          <div class="n">01</div>
+          <h4 class="hand">贴进对话</h4>
+          <p>粘贴文字，或直接上传聊天截图，它会自己认出哪句是你说的。</p>
+        </div>
+        <div class="step">
+          <div class="n">02</div>
+          <h4 class="hand">选你的意图</h4>
+          <p>想答应、想拒绝、想拖一拖，还是只想接住话头不冷场。</p>
+        </div>
+        <div class="step">
+          <div class="n">03</div>
+          <h4 class="hand">挑一条发出去</h4>
+          <p>三条不同策略的回复，每条都告诉你它为什么这么说。</p>
+        </div>
+      </div>
+      <div class="more hand">
+        <svg width="42" height="30" viewBox="0 0 42 30" fill="none" stroke="#171717" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+          <g filter="url(#rough)"><path d="M4 6 C14 4 26 8 33 18"/><path d="M33 18 L24 15 M33 18 L30 9"/></g>
+        </svg>
+        <span>开始写一条</span>
+      </div>
+    </div>
+
+    <div class="sec" style="padding-bottom:70px">
+      <div class="store">
+        <div class="shot">（示例回复截图位）</div>
+        <div class="n">答应并推进 · 对同事</div>
+        <div class="m">行，我今晚整理完发你</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= E2 ================= -->
+<section class="stage" id="sE2">
+  <div class="cap">
+    <h2>E2 · 工具适配版</h2>
+    <span class="ref">同一套手绘气质，但密度按工具需要</span>
+    <span class="kw">无卡片</span><span class="kw">手绘下划线</span><span class="kw">一屏可操作</span>
+  </div>
+  <div class="page e2">
+    <div class="nav">
+      <svg class="logo" viewBox="0 0 60 52" fill="none" stroke="#171717" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <g filter="url(#rough)">
+          <path d="M16 22 C12 8 26 2 36 6 C45 10 47 20 43 27 C39 21 32 18 24 19 C20 19.6 17.6 20.6 16 22 Z" fill="#171717" stroke="none"/>
+          <path d="M16 22 C15 30 19 35 26 37 C30 34 32 29 32 24"/>
+          <path d="M21 23 C23.5 25.6 27 25.6 29.5 23"/>
+          <path d="M26 37 C34 41 41 39 46 33 M46 33 L52 21"/>
+          <path d="M48 19 L6 25 L9 39 L51 33 Z" fill="#fff"/>
+          <circle cx="17" cy="29" r="1.7" fill="#171717"/><circle cx="25" cy="28" r="1.7" fill="#171717"/><circle cx="21" cy="35" r="1.7" fill="#171717"/>
+        </g>
+      </svg>
+      <div class="links"><span>怎么用</span><span>风格档案</span><span>隐私</span></div>
+      <div class="lang">◍ 登录同步</div>
+    </div>
+
+    <div class="hero">
+      <svg class="doodle d-right" viewBox="0 0 170 130" fill="none" stroke="#171717" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+        <g filter="url(#rough)">
+          <path d="M22 34 C20 20 34 12 68 12 C104 12 118 22 116 36 C114 50 96 56 64 56 C57 56 51 55 46 54 L34 66 L37 52 C28 48 23 41 22 34 Z" fill="#fff"/>
+          <path d="M44 26 C60 24 76 24 92 26 M44 34 C58 32 74 32 88 34 M44 42 C56 40 68 40 78 42"/>
+          <path d="M136 76 C130 88 122 96 112 100 M112 100 L124 98 M112 100 L118 88"/>
+          <path d="M150 44 l3 7 7 3 -7 3 -3 7 -3 -7 -7 -3 7 -3 z" fill="#171717" stroke="none"/>
+        </g>
+      </svg>
+      <div class="zh hand">把消息 回得漂亮</div>
+      <div class="en hen">reply, in your own voice</div>
+    </div>
+
+    <div class="body">
+      <div class="blk">
+        <div class="hd"><span class="no">01</span><h3 class="hand">贴进对话</h3><span class="opt">也可以上传截图</span></div>
+        <div class="field">对方：小饶，明天那个方案能给我看看吗<br>我：可以的，我今晚整理完发你<br>对方：好，另外周五的会你能帮忙做下记录吗</div>
+        <svg class="wavy" viewBox="0 0 900 12" fill="none" stroke="#DEDCD7" stroke-width="2" stroke-linecap="round" preserveAspectRatio="none"><path d="M2 8 q16 -8 32 0 t32 0 t32 0 t32 0 t32 0 t32 0 t32 0 t32 0 t32 0 t32 0 t32 0 t32 0 t32 0 t32 0 t32 0 t32 0 t32 0 t32 0 t32 0 t32 0 t32 0 t32 0 t32 0 t32 0 t32 0 t32 0 t32 0"/></svg>
+      </div>
+
+      <div class="blk">
+        <div class="hd"><span class="no">02</span><h3 class="hand">你想达到什么效果</h3></div>
+        <div class="picks">
+          <span class="pick on">答应并推进<svg class="ul" viewBox="0 0 120 9" fill="none" stroke="#171717" stroke-width="2.6" stroke-linecap="round" preserveAspectRatio="none"><path d="M2 6 C30 2 70 8 118 4"/></svg></span>
+          <span class="pick">答应但争取条件</span>
+          <span class="pick">委婉拒绝</span>
+          <span class="pick">拖延一下</span>
+          <span class="pick">接住话头</span>
+          <span class="pick">幽默化解</span>
+        </div>
+        <div class="hd" style="margin-top:34px"><span class="no">03</span><h3 class="hand">对方是谁</h3></div>
+        <div class="picks">
+          <span class="pick">领导</span>
+          <span class="pick on">同事<svg class="ul" viewBox="0 0 120 9" fill="none" stroke="#171717" stroke-width="2.6" stroke-linecap="round" preserveAspectRatio="none"><path d="M2 5 C32 8 74 2 118 5"/></svg></span>
+          <span class="pick">朋友</span>
+          <span class="pick" style="color:#B4B2AD">＋ 自己填</span>
+        </div>
+      </div>
+
+      <div class="go">
+        <span class="txt hand">生成回复</span>
+        <svg width="52" height="32" viewBox="0 0 52 32" fill="none" stroke="#171717" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+          <g filter="url(#rough)"><path d="M4 8 C18 5 34 10 43 21"/><path d="M43 21 L32 18 M43 21 L39 10"/></g>
+        </svg>
+      </div>
+
+      <div class="res">
+        <div class="r">
+          <div class="n hand">01</div>
+          <div><div class="t">行，我记一份发群里</div><div class="s">直接 · 最短 · 适合熟人</div></div>
+        </div>
+        <div class="r">
+          <div class="n hand">02</div>
+          <div><div class="t">没问题，会前我把模板发你确认下</div><div class="s">带条件 · 留余地</div></div>
+        </div>
+        <div class="r">
+          <div class="n hand">03</div>
+          <div><div class="t">可以，周五我全程在，放心</div><div class="s">推进 · 显可靠</div></div>
+        </div>
+      </div>
+
+      <div class="foot hand">
+        <svg width="38" height="26" viewBox="0 0 38 26" fill="none" stroke="#171717" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+          <g filter="url(#rough)"><path d="M4 20 C12 8 24 4 34 6"/><path d="M34 6 L25 4 M34 6 L30 14"/></g>
+        </svg>
+        <span>再看看别的说法</span>
+      </div>
+
+      <div class="privacy">无账号可用 · 聊天内容不留存 · 风格样本只存在你的浏览器</div>
+    </div>
+  </div>
+</section>
+
+</div>
+
+<script>
+  const tabs = document.getElementById('tabs');
+  tabs.addEventListener('click', e => {
+    const b = e.target.closest('button[data-t]');
+    if (!b) return;
+    tabs.querySelectorAll('button').forEach(x => x.classList.remove('on'));
+    b.classList.add('on');
+    document.querySelectorAll('.stage').forEach(s => s.classList.remove('on'));
+    document.getElementById('s' + b.dataset.t).classList.add('on');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+</script>
+</body>
+</html>

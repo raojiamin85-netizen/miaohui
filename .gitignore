@@ -1,0 +1,20 @@
+# 中间产物：测试截图 / 日志（本地留档，不进仓库）
+docs/evidence/
+
+# 脚本自动生成的报告（内容见 docs/verification.md，是刻意维护的版本）
+scripts/*.txt
+
+# 依赖与构建产物
+node_modules/
+dist/
+build/
+
+# 编辑器 / 系统
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# 本地环境变量（测试邮箱等敏感值请放这里）
+.env
+.env.local

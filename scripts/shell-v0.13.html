@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>妙回 · 把任何一条消息，回得漂亮</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/zcool-kuaile@5/index.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/caveat@5/index.css">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    /* 取自 E2 原型的取色 */
+    --ink: #171717;
+    --sub: #6E6E6E;
+    --soft: #9C9A95;
+    --faint: #B4B2AD;
+    --pick: #A8A6A1;
+    --hair: #EBE9E5;
+    --dash: #D9D7D2;
+    --mark: #B5451B;
+    --mark-s: rgba(181,69,27,.09);
+    --hand: "ZCOOL KuaiLe", "PingFang SC", "Microsoft YaHei", sans-serif;
+    --hen: "Caveat", "ZCOOL KuaiLe", cursive;
+    /* 手绘波浪：浅灰（分隔线）/ 墨色（选中下划线） */
+    --wave: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='30' height='12' viewBox='0 0 30 12'%3E%3Cpath d='M0 6 C4 1 11 1 15 6 C19 11 26 11 30 6' fill='none' stroke='%23DEDCD7' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
+    --wave-bold: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 9' preserveAspectRatio='none'%3E%3Cpath d='M2 6 C30 2 70 8 118 4' fill='none' stroke='%23171717' stroke-width='2.6' stroke-linecap='round'/%3E%3C/svg%3E");
+  }
+  html { -webkit-font-smoothing: antialiased; }
+  body {
+    font-family: "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+    background: #fff; color: var(--ink); line-height: 1.75; overflow-x: hidden;
+  }
+  .sr { position: absolute; left: -9999px; }
+  .wrap { max-width: 1024px; margin: 0 auto; padding: 0 40px 84px; }
+
+  /* 手绘波浪分隔线（E2 的 .wavy） */
+  .rule { height: 12px; background-image: var(--wave); background-repeat: repeat-x; background-position: left center; background-size: 30px 12px; }
+
+  /* ============================= 顶栏 ============================= */
+  nav { display: flex; align-items: center; justify-content: space-between; padding: 24px 0 4px; animation: fadeDown .7s cubic-bezier(.22,1,.36,1) both; }
+  .brand { display: flex; align-items: center; gap: 11px; font-family: var(--hand); font-size: 23px; letter-spacing: 3px; }
+  .brand svg { width: 44px; display: block; transition: transform .45s cubic-bezier(.34,1.56,.64,1); }
+  .brand:hover svg { transform: rotate(-8deg) scale(1.07); }
+  @keyframes fadeDown { from { opacity: 0; transform: translateY(-12px); } to { opacity: 1; transform: none; } }
+
+  /* ============================= 首屏（E1 的涂鸦 + E2 的字号） ============================= */
+  .hero { padding: 34px 0 46px; animation: heroIn .9s cubic-bezier(.22,1,.36,1) both; }
+  .hero .row { display: flex; align-items: center; justify-content: space-between; gap: 26px; }
+  .hero .doodle { display: block; flex: none; }
+  .hero .dl { width: 166px; animation: bobA 6s ease-in-out infinite; }
+  .hero .dr { width: 150px; animation: bobB 7.2s ease-in-out infinite; }
+  .hero .slogan { flex: 1; text-align: center; }
+  .hero .slogan .zh { font-family: var(--hand); font-size: 40px; line-height: 1.45; letter-spacing: 2px; }
+  .hero .slogan .en { font-family: var(--hen); font-size: 22px; color: var(--sub); margin-top: 8px; }
+  .hero-foot { margin-top: 24px; text-align: center; }
+  .hero-wavy { display: block; width: 196px; margin: 0 auto; }
+  .hero-wavy .draw { stroke-dasharray: 240; stroke-dashoffset: 240; animation: drawStroke 1.4s .35s cubic-bezier(.4,0,.2,1) forwards; }
+  .hero-foot p { font-family: var(--hand); font-size: 14px; color: var(--soft); letter-spacing: 2px; margin-top: 16px; }
+  @keyframes heroIn { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
+  @keyframes drawStroke { to { stroke-dashoffset: 0; } }
+  @keyframes bobA { 0%, 100% { transform: translateY(0) rotate(0); } 50% { transform: translateY(-9px) rotate(-1.5deg); } }
+  @keyframes bobB { 0%, 100% { transform: translateY(0) rotate(0); } 50% { transform: translateY(10px) rotate(1.5deg); } }
+
+  /* ============================= 区块 ============================= */
+  .blk { position: relative; padding: 26px 0 30px; }
+  .reveal { opacity: 0; transform: translateY(24px); transition: opacity .7s ease, transform .7s cubic-bezier(.22,1,.36,1); }
+  .reveal.in { opacity: 1; transform: none; }
+
+  .hd { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: 20px; }
+  .hd .no { font-family: var(--hand); font-size: 13px; color: var(--faint); letter-spacing: 1px; transition: color .3s; }
+  .blk:hover .hd .no { color: var(--ink); }
+  .hd h2 { font-family: var(--hand); font-size: 25px; font-weight: 400; letter-spacing: 1.5px; }
+  .hd .opt { font-family: var(--hand); font-size: 12px; color: var(--faint); letter-spacing: 1px; }
+  .hd-sub { margin-top: 36px; }
+
+  /* ============================= 输入：写在纸上 ============================= */
+  textarea, input[type=text], input[type=email], input[type=password] {
+    width: 100%; border: none; border-bottom: 1.5px solid var(--hair); border-radius: 0;
+    padding: 8px 2px 14px; font-size: 16px; font-family: inherit; resize: vertical;
+    background: transparent; color: var(--ink); line-height: 1.95;
+    transition: border-color .3s, background .3s;
+  }
+  textarea::placeholder, input::placeholder { color: var(--soft); }
+  textarea:focus, input:focus { outline: none; border-bottom-color: var(--ink); }
+  .hint { font-size: 12.5px; color: var(--faint); margin-top: 16px; letter-spacing: .5px; line-height: 1.9; }
+  .hint.first { margin-top: 0; margin-bottom: 14px; }
+  #sec1.dragging textarea { border-bottom-color: var(--ink); background: rgba(23,23,23,.035); }
+  .sub { font-family: var(--hand); font-size: 17px; letter-spacing: 1px; color: var(--ink); margin: 34px 0 16px; }
+  .sub small { font-family: inherit; color: var(--faint); font-size: 12.5px; margin-left: 8px; }
+
+  /* ============================= 截图 ============================= */
+  .shot-row { display: flex; align-items: center; gap: 18px; margin-top: 22px; flex-wrap: wrap; }
+  .shot-btn { display: inline-flex; align-items: center; gap: 8px; border: none; border-bottom: 1.5px dashed var(--dash); background: transparent; padding: 4px 2px 7px; font-family: var(--hand); font-size: 15px; letter-spacing: 1px; color: var(--sub); cursor: pointer; transition: all .25s cubic-bezier(.22,1,.36,1); }
+  .shot-btn:hover:not(:disabled) { border-bottom-color: var(--ink); color: var(--ink); transform: translateY(-1px); }
+  .shot-btn:disabled { opacity: .45; cursor: not-allowed; }
+  /* 上传按钮 + 覆盖在它上面的 file input（v0.13 移动端修复）。
+     关键：file input 绝不能用 display:none（也就是 hidden 属性）——移动端 WebKit 与
+     各家 WebView 会拒绝为「没有渲染」的 input 打开选择器，表现就是「点了没反应」。
+     这里把它做成 0 不透明度、正好铺满按钮，让真实点击直接落在 input 上，
+     连程序化 click() 都不需要，iOS Safari / 微信内置浏览器同样能唤起。 */
+  .shot-pick { position: relative; display: inline-flex; }
+  .shot-file {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    opacity: 0; cursor: pointer; font-size: 0; border: 0; padding: 0; margin: 0;
+  }
+  /* 识别中按钮置灰时覆盖层一并失效，避免绕过 disabled */
+  .shot-pick:has(.shot-btn:disabled) .shot-file { pointer-events: none; }
+  .shot-hint { font-size: 12.5px; color: var(--faint); letter-spacing: .5px; }
+
+  .shots { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 18px; }
+  .shots:empty { margin-top: 0; }
+  .shot { position: relative; width: 84px; height: 84px; border: 1px solid var(--hair); border-radius: 3px; overflow: hidden; background: #fff; animation: chipIn .45s cubic-bezier(.34,1.56,.64,1) backwards; }
+  .shot img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .4s ease; }
+  .shot:hover img { transform: scale(1.06); }
+  .shot .x { position: absolute; top: 3px; right: 3px; width: 18px; height: 18px; border: none; border-radius: 50%; background: rgba(23,23,23,.6); color: #fff; font-size: 11px; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; transition: background .2s; }
+  .shot .x:hover { background: var(--ink); }
+  .shot .badge { position: absolute; left: 0; right: 0; bottom: 0; font-size: 10px; text-align: center; letter-spacing: 1px; padding: 3px 0; background: rgba(23,23,23,.6); color: #fff; }
+  .shot .badge.ok { background: rgba(23,23,23,.85); }
+  .shot .badge.err { background: rgba(181,69,27,.9); }
+  .shot .scan { position: absolute; inset: 0; background: linear-gradient(180deg, transparent, rgba(23,23,23,.28), transparent); animation: scan 1.5s ease-in-out infinite; }
+  @keyframes scan { 0% { transform: translateY(-100%); } 100% { transform: translateY(100%); } }
+  .shot-msg { font-size: 12.5px; letter-spacing: .5px; margin-top: 14px; display: none; color: var(--sub); line-height: 1.85; }
+  .shot-msg.on { display: block; animation: fadeUp .35s ease both; }
+  .shot-msg.err { color: var(--mark); }
+  .shot-msg b { font-weight: 400; color: var(--mark); border-bottom: 1px solid var(--mark); cursor: pointer; }
+  .spin { display: inline-block; width: 9px; height: 9px; border: 1.4px solid var(--hair); border-top-color: var(--ink); border-radius: 50%; animation: spinning .7s linear infinite; margin-right: 8px; vertical-align: -1px; }
+  @keyframes spinning { to { transform: rotate(360deg); } }
+
+  /* ============================= 选项：大字 + 手绘下划线（E2 的 .pick） ============================= */
+  .chips { display: flex; flex-wrap: wrap; gap: 10px 32px; align-items: baseline; }
+  .chip {
+    position: relative; border: none; background: transparent; padding: 4px 2px 12px;
+    font-family: var(--hand); font-size: 19px; letter-spacing: 1px; color: var(--pick);
+    cursor: pointer; transition: color .25s, transform .25s;
+    animation: chipIn .5s cubic-bezier(.34,1.56,.64,1) backwards;
+  }
+  .chip:hover { color: var(--sub); transform: translateY(-2px); }
+  .chip:active { transform: scale(.95); }
+  .chip.on { color: var(--ink); }
+  .chip.on::after {
+    content: ""; position: absolute; left: -4px; right: -4px; bottom: 2px; height: 9px;
+    background-image: var(--wave-bold); background-repeat: no-repeat; background-position: center; background-size: 100% 9px;
+    animation: ulIn .35s cubic-bezier(.22,1,.36,1) both;
+  }
+  @keyframes chipIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+  @keyframes ulIn { from { opacity: 0; transform: scaleX(.4); } to { opacity: 1; transform: none; } }
+  #personaCustom { margin-top: 20px; display: none; }
+
+  /* ============================= 风格档案 ============================= */
+  .archive { margin-top: 34px; padding-top: 30px; position: relative; }
+  .archive::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 12px; background-image: var(--wave); background-repeat: repeat-x; background-position: left center; background-size: 30px 12px; }
+  .arch-head { display: flex; align-items: baseline; gap: 14px; margin-bottom: 20px; flex-wrap: wrap; }
+  .arch-title { font-family: var(--hand); font-size: 17px; letter-spacing: 2px; }
+  .arch-save { display: flex; align-items: center; gap: 16px; margin-top: 22px; flex-wrap: wrap; }
+  .mini { border: none; border-bottom: 1.5px dashed var(--dash); background: transparent; padding: 4px 2px 8px; font-family: var(--hand); font-size: 15px; letter-spacing: 1px; color: var(--sub); cursor: pointer; transition: all .25s cubic-bezier(.22,1,.36,1); }
+  .mini:hover { border-bottom-color: var(--ink); color: var(--ink); transform: translateY(-1px); }
+  .mini.solid { border-bottom: 1.5px solid var(--ink); color: var(--ink); }
+  .arch-form { display: none; align-items: center; gap: 12px; }
+  .arch-form.on { display: inline-flex; animation: fadeUp .3s ease both; }
+  .arch-form input { width: 190px; padding: 5px 2px 9px; font-size: 15px; }
+  .arch-chip { padding-right: 28px; font-size: 17px; }
+  .arch-chip.suggest { color: var(--sub); animation: dotPulse 2.2s ease-in-out infinite; }
+  .arch-chip.suggest::after { content: ""; position: absolute; left: -4px; right: -4px; bottom: 2px; height: 8px; opacity: .4; background-image: var(--wave-bold); background-repeat: no-repeat; background-position: center; background-size: 100% 8px; }
+  .arch-chip .del { position: absolute; right: 2px; top: 6px; width: 16px; height: 16px; border: none; background: transparent; font-size: 12px; line-height: 1; color: var(--faint); cursor: pointer; padding: 0; border-radius: 50%; transition: color .2s, background .2s; }
+  .arch-chip .del:hover { color: var(--mark); background: var(--mark-s); }
+
+  /* ============================= 生成 ============================= */
+  #go { display: flex; align-items: center; gap: 18px; width: 100%; border: none; background: transparent; padding: 34px 0 14px; cursor: pointer; font-family: var(--hand); color: var(--ink); text-align: left; transition: opacity .25s; }
+  #go .go-txt { position: relative; font-size: 30px; letter-spacing: 3px; }
+  #go .go-txt::after { content: ""; position: absolute; left: -5px; right: -5px; bottom: -3px; height: 9px; background-image: var(--wave-bold); background-repeat: no-repeat; background-position: center; background-size: 100% 9px; transform-origin: left center; transform: scaleX(0); transition: transform .4s cubic-bezier(.22,1,.36,1); }
+  #go:hover:not(:disabled) .go-txt::after { transform: scaleX(1); }
+  #go .go-arrow { flex: none; transition: transform .4s cubic-bezier(.22,1,.36,1); }
+  #go:hover:not(:disabled) .go-arrow { transform: translateX(9px); }
+  #go:not(:disabled):active { transform: scale(.99); }
+  #go:disabled { opacity: .36; cursor: not-allowed; }
+  #go.generating .go-arrow { animation: nudge 1.5s ease-in-out infinite; }
+  @keyframes nudge { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(10px); } }
+  #cancel { display: none; width: 100%; border: none; background: transparent; color: var(--faint); padding: 12px; font-family: var(--hand); font-size: 14px; letter-spacing: 2px; cursor: pointer; transition: color .2s; }
+  #cancel:hover { color: var(--ink); }
+
+  /* ============================= 等待 ============================= */
+  .status { text-align: center; display: none; padding: 30px 0 10px; animation: fadeUp .4s ease both; }
+  .status.err { color: var(--mark); animation: shake .45s cubic-bezier(.36,.07,.19,.97) both; }
+  @keyframes shake { 10%, 90% { transform: translateX(-1px); } 20%, 80% { transform: translateX(2px); } 30%, 50%, 70% { transform: translateX(-3px); } 40%, 60% { transform: translateX(3px); } }
+  .track { position: relative; width: 260px; height: 12px; margin: 0 auto 16px; background-image: var(--wave); background-repeat: repeat-x; background-position: left center; background-size: 30px 12px; }
+  .track i { position: absolute; top: 50%; left: 0; width: 26px; height: 5px; margin-top: -2.5px; background: var(--ink); border-radius: 3px; animation: glide 1.6s cubic-bezier(.4,0,.6,1) infinite; }
+  @keyframes glide { 0% { left: -26px; } 100% { left: 260px; } }
+  .stage { font-family: var(--hand); font-size: 16px; color: var(--sub); letter-spacing: 1px; }
+  .stage::before { content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--ink); margin-right: 9px; vertical-align: 2px; animation: dotPulse 1.4s ease-in-out infinite; }
+  @keyframes dotPulse { 0%, 100% { opacity: .3; transform: scale(.8); } 50% { opacity: 1; transform: scale(1.15); } }
+  .elapsed { font-family: var(--hand); font-size: 13px; color: var(--faint); letter-spacing: 1px; }
+
+  /* ============================= 结果（E2 的 .r 栅格：号码左、正文右上、策略右下） ============================= */
+  .cand {
+    position: relative; display: grid; grid-template-columns: 52px 1fr; column-gap: 26px; align-items: start;
+    padding: 26px 0;
+    animation: candIn .65s cubic-bezier(.22,1,.36,1) backwards; transition: background .3s;
+  }
+  .cand::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 12px; background-image: var(--wave); background-repeat: repeat-x; background-position: left center; background-size: 30px 12px; }
+  .cand:hover { background: rgba(23,23,23,.018); }
+  .cand .head { display: contents; }
+  .cand .no { grid-area: 1 / 1 / 4 / 2; font-family: var(--hand); font-size: 30px; color: #C4C2BD; line-height: 1; transition: color .3s; }
+  .cand:hover .no { color: var(--ink); }
+  .cand .reply { grid-area: 1 / 2 / 2 / 3; font-size: 21px; line-height: 1.7; letter-spacing: .2px; animation: inkIn .7s .25s cubic-bezier(.22,1,.36,1) backwards; }
+  .cand .strategy { grid-area: 2 / 2 / 3 / 3; font-size: 12.5px; color: var(--soft); letter-spacing: .5px; margin-top: 10px; animation: fadeUp .5s .3s ease backwards; }
+  .cand .ops { grid-area: 3 / 2 / 4 / 3; display: flex; gap: 10px 22px; margin-top: 20px; flex-wrap: wrap; align-items: center; }
+  .cand .ops button { border: none; background: transparent; padding: 2px 0 5px; font-family: var(--hand); font-size: 15px; cursor: pointer; color: var(--soft); letter-spacing: 1px; border-bottom: 1.5px solid transparent; transition: color .2s, border-color .2s; }
+  .cand .ops button:hover:not(:disabled) { color: var(--ink); border-bottom-color: var(--ink); border-bottom-style: dashed; }
+  .cand .ops button:disabled { opacity: .35; cursor: not-allowed; }
+  .cand .ops .copy.done { color: var(--mark); border-bottom-color: var(--mark); border-bottom-style: solid; }
+  .fb-reason { flex: 1; min-width: 180px; border: none; border-bottom: 1.5px solid var(--hair); border-radius: 0; background: transparent; padding: 4px 2px 8px; font-size: 14px; font-family: inherit; }
+  .fb-reason:focus { outline: none; border-bottom-color: var(--ink); }
+  @keyframes candIn { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+  @keyframes inkIn { from { opacity: 0; transform: translateY(9px); } to { opacity: 1; transform: none; } }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+
+  .regen { display: flex; gap: 12px 26px; flex-wrap: wrap; align-items: center; padding: 30px 0 0; position: relative; }
+  .regen::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 12px; background-image: var(--wave); background-repeat: repeat-x; background-position: left center; background-size: 30px 12px; }
+  .regen button { border: none; border-bottom: 1.5px dashed var(--dash); background: transparent; padding: 4px 2px 8px; font-family: var(--hand); font-size: 16px; cursor: pointer; letter-spacing: 1px; color: var(--sub); transition: all .25s cubic-bezier(.22,1,.36,1); }
+  .regen button:hover { border-bottom-color: var(--ink); color: var(--ink); transform: translateY(-2px); }
+  .regen button:active { transform: scale(.95); }
+  .regen button.clear { margin-left: auto; color: var(--faint); }
+  .regen button.clear:hover { border-bottom-color: var(--faint); color: var(--sub); transform: none; }
+  .regen button.clear.arm { color: var(--mark); border-bottom-color: var(--mark); border-bottom-style: solid; animation: armPulse 1.4s ease-in-out infinite; }
+  @keyframes armPulse { 0%, 100% { opacity: .55; } 50% { opacity: 1; } }
+
+  .empty { text-align: center; padding: 48px 0 12px; animation: fadeUp .8s .35s ease backwards; }
+  .empty svg { display: block; margin: 0 auto; animation: bob 4.5s ease-in-out infinite; }
+  .empty p { font-family: var(--hand); font-size: 15px; color: var(--soft); letter-spacing: 2px; margin-top: 20px; }
+  @keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-7px); } }
+
+  footer { position: relative; padding-top: 32px; text-align: center; font-size: 12.5px; color: var(--faint); margin-top: 72px; letter-spacing: .5px; line-height: 2; }
+  footer::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 12px; background-image: var(--wave); background-repeat: repeat-x; background-position: left center; background-size: 30px 12px; }
+  .foot-mark { font-family: var(--hand); font-size: 15px; color: var(--soft); margin-bottom: 12px; animation: dotPulse 3.2s ease-in-out infinite; }
+
+  /* ============================= 账号 ============================= */
+  .acct { display: flex; align-items: center; gap: 14px; }
+  .acct .ver { font-family: var(--hand); font-size: 12px; color: var(--faint); letter-spacing: 1px; }
+  .acct-btn { display: inline-flex; align-items: center; gap: 8px; border: none; border-bottom: 1.5px dashed var(--dash); background: transparent; padding: 4px 2px 7px; font-family: var(--hand); font-size: 13px; letter-spacing: 1px; color: var(--sub); cursor: pointer; transition: all .25s cubic-bezier(.22,1,.36,1); }
+  .acct-btn:hover { border-bottom-color: var(--ink); color: var(--ink); transform: translateY(-1px); }
+  .acct-user { display: flex; align-items: center; gap: 10px; font-size: 13px; letter-spacing: .5px; color: var(--sub); }
+  .acct-user .em { max-width: 170px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink); }
+  .acct-user .out { border: none; background: transparent; font-family: var(--hand); font-size: 13px; color: var(--faint); cursor: pointer; letter-spacing: 1px; padding: 0 0 2px; border-bottom: 1px solid transparent; transition: color .2s, border-color .2s; }
+  .acct-user .out:hover { color: var(--mark); border-bottom-color: var(--mark); }
+  .cloud-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--ink); display: inline-block; flex: none; animation: dotPulse 2.6s ease-in-out infinite; }
+
+  /* ============================= 登录弹窗 ============================= */
+  .mask { position: fixed; inset: 0; background: rgba(23,23,23,.40); display: none; align-items: center; justify-content: center; padding: 20px; z-index: 50; }
+  .mask.on { display: flex; animation: fadeIn .26s ease both; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  .auth { position: relative; width: 100%; max-width: 392px; background: #fff; border: 1px solid rgba(23,23,23,.14); border-radius: 5px; padding: 34px 28px 26px; box-shadow: 0 24px 60px rgba(23,23,23,.16); animation: authIn .42s cubic-bezier(.22,1,.36,1) both; max-height: 92vh; overflow-y: auto; }
+  @keyframes authIn { from { opacity: 0; transform: translateY(22px) scale(.97); } to { opacity: 1; transform: none; } }
+  .auth h3 { font-family: var(--hand); font-size: 24px; font-weight: 400; letter-spacing: 4px; text-align: center; }
+  .auth .tip { font-size: 12.5px; color: var(--faint); letter-spacing: .5px; text-align: center; margin-top: 12px; line-height: 1.9; }
+  .auth-close { position: absolute; top: 10px; right: 14px; border: none; background: transparent; font-size: 20px; line-height: 1; color: var(--faint); cursor: pointer; padding: 4px 7px; transition: color .2s, transform .2s; }
+  .auth-close:hover { color: var(--ink); transform: rotate(90deg); }
+  .auth-tabs { display: flex; margin: 24px 0; border-bottom: 1.5px solid var(--hair); }
+  .auth-tabs button { flex: 1; border: none; background: transparent; font-family: var(--hand); font-size: 14px; letter-spacing: 1px; color: var(--faint); padding: 8px 0 11px; cursor: pointer; border-bottom: 1.5px solid transparent; margin-bottom: -1.5px; transition: color .22s, border-color .22s; }
+  .auth-tabs button:hover { color: var(--sub); }
+  .auth-tabs button.on { color: var(--ink); border-color: var(--ink); }
+  .auth-f { margin-bottom: 20px; }
+  .auth-f input { padding: 5px 2px 11px; font-size: 15px; }
+  .auth-row { display: flex; gap: 10px; align-items: flex-start; }
+  .auth-row input { flex: 1; min-width: 0; }
+  .auth-code { flex: none; border: none; border-bottom: 1.5px dashed var(--dash); background: transparent; padding: 5px 2px 9px; font-family: var(--hand); font-size: 13px; letter-spacing: 1px; color: var(--sub); cursor: pointer; white-space: nowrap; transition: all .22s; }
+  .auth-code:hover:not(:disabled) { border-bottom-color: var(--ink); color: var(--ink); }
+  .auth-code:disabled { opacity: .45; cursor: not-allowed; }
+  .auth-submit { width: 100%; border: none; background: var(--ink); color: #fff; font-family: var(--hand); font-size: 16px; letter-spacing: 6px; text-indent: 6px; padding: 15px; border-radius: 3px; cursor: pointer; margin-top: 8px; transition: letter-spacing .25s, opacity .2s; }
+  .auth-submit:not(:disabled):hover { letter-spacing: 9px; text-indent: 9px; }
+  .auth-submit:disabled { opacity: .38; cursor: not-allowed; }
+  .auth-link { display: block; width: 100%; text-align: center; margin-top: 18px; font-family: var(--hand); font-size: 13px; color: var(--faint); letter-spacing: 1px; cursor: pointer; background: none; border: none; transition: color .2s; }
+  .auth-link:hover { color: var(--ink); }
+  .auth-msg { font-size: 13px; letter-spacing: .5px; margin-top: 16px; display: none; line-height: 1.8; }
+  .auth-msg.on { display: block; animation: fadeUp .3s ease both; }
+  .auth-msg.err { color: var(--mark); animation: shake .45s cubic-bezier(.36,.07,.19,.97) both; }
+  .auth-msg.ok { color: var(--ink); }
+  .auth-note { font-size: 12px; color: var(--faint); letter-spacing: .5px; text-align: center; margin-top: 20px; line-height: 1.9; border-top: 1.5px solid var(--hair); padding-top: 16px; }
+
+  /* ============================= 窄屏 ============================= */
+  @media (max-width: 820px) {
+    .wrap { padding: 0 22px 70px; }
+    .hero { padding: 26px 0 36px; }
+    .hero .row { gap: 14px; }
+    .hero .dl { width: 104px; }
+    .hero .dr { width: 94px; }
+    .hero .slogan .zh { font-size: 30px; letter-spacing: 1px; }
+    .hero .slogan .en { font-size: 18px; }
+    .hero-wavy { width: 166px; }
+    .hero-foot p { font-size: 13px; letter-spacing: 1px; }
+    .hd h2 { font-size: 22px; }
+    .chip { font-size: 17px; }
+    .arch-chip { font-size: 16px; }
+    #go .go-txt { font-size: 25px; }
+    .cand { grid-template-columns: 38px 1fr; column-gap: 16px; }
+    .cand .no { font-size: 24px; }
+    .cand .reply { font-size: 18px; }
+    .regen button.clear { margin-left: 0; }
+    .acct-user .em { max-width: 96px; }
+  }
+  @media (max-width: 620px) {
+    .hero { padding: 20px 0 30px; }
+    /* 小屏：标语独占一行，人物与气泡并排贴在下面，避免三个装饰竖着堆太高 */
+    .hero .row { flex-wrap: wrap; justify-content: center; gap: 10px 24px; }
+    .hero .slogan { order: 1; flex-basis: 100%; }
+    .hero .dl { order: 2; width: 98px; }
+    .hero .dr { order: 3; width: 90px; }
+    .hero-foot { margin-top: 18px; }
+    .hero-wavy { width: 150px; }
+    .hero-foot p { margin-top: 12px; }
+  }
+  /* 触屏设备：把点击热区放大到 44px 上下（Apple HIG 的最小可点尺寸），
+     并隐藏对手机没有意义的键盘提示 */
+  @media (hover: none), (pointer: coarse) {
+    .kbd-only { display: none; }
+    .shot-btn { min-height: 44px; padding: 10px 2px; font-size: 16px; }
+    .shot .x { width: 26px; height: 26px; font-size: 15px; }
+    .mini { min-height: 40px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+    .reveal { opacity: 1; transform: none; }
+    .hero-wavy .draw { stroke-dashoffset: 0; }
+  }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <filter id="rough" x="-10%" y="-10%" width="120%" height="120%">
+    <feTurbulence type="fractalNoise" baseFrequency="0.014" numOctaves="2" seed="7" result="n"/>
+    <feDisplacementMap in="SourceGraphic" in2="n" scale="2.6" xChannelSelector="R" yChannelSelector="G"/>
+  </filter>
+</svg>
+<h1 class="sr">妙回：粘贴聊天内容，自动生成贴合语气、不像 AI 的候选回复</h1>
+<div class="wrap">
+  <nav>
+    <div class="brand">
+      <svg viewBox="0 0 60 52" fill="none" stroke="#171717" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <g filter="url(#rough)">
+          <path d="M16 22 C12 8 26 2 36 6 C45 10 47 20 43 27 C39 21 32 18 24 19 C20 19.6 17.6 20.6 16 22 Z" fill="#171717" stroke="none"/>
+          <path d="M16 22 C15 30 19 35 26 37 C30 34 32 29 32 24"/>
+          <path d="M21 23 C23.5 25.6 27 25.6 29.5 23"/>
+          <path d="M26 37 C34 41 41 39 46 33 M46 33 L52 21"/>
+          <path d="M48 19 L6 25 L9 39 L51 33 Z" fill="#fff"/>
+          <circle cx="17" cy="29" r="1.7" fill="#171717"/><circle cx="25" cy="28" r="1.7" fill="#171717"/><circle cx="21" cy="35" r="1.7" fill="#171717"/>
+        </g>
+      </svg>
+      <span>妙回</span>
+    </div>
+    <div class="acct" id="acct"></div>
+  </nav>
+
+  <header class="hero">
+    <div class="row">
+      <svg class="doodle dl" viewBox="0 0 180 150" fill="none" stroke="#171717" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <g filter="url(#rough)">
+          <path d="M40 62 C32 32 62 16 86 24 C106 31 110 50 102 64 C94 52 82 46 68 48 C56 50 46 54 40 62 Z" fill="#171717" stroke="none"/>
+          <path d="M40 62 C38 76 44 86 56 90 M56 90 C62 84 66 74 66 64"/>
+          <path d="M48 64 C52 68 58 68 62 64"/>
+          <path d="M58 92 C72 98 84 94 92 84 M92 84 L104 62"/>
+          <path d="M96 60 L126 54 L132 78 L104 84 Z" fill="#fff"/>
+          <circle cx="110" cy="68" r="2.3" fill="#171717"/><circle cx="119" cy="66" r="2.3" fill="#171717"/><circle cx="115" cy="76" r="2.3" fill="#171717"/>
+          <path d="M56 90 C44 102 40 118 40 134 M74 94 C86 104 92 118 94 132"/>
+        </g>
+      </svg>
+      <div class="slogan">
+        <div class="zh">把消息 回得漂亮</div>
+        <div class="en">reply, in your own voice</div>
+      </div>
+      <svg class="doodle dr" viewBox="0 0 170 130" fill="none" stroke="#171717" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <g filter="url(#rough)">
+          <path d="M22 34 C20 20 34 12 68 12 C104 12 118 22 116 36 C114 50 96 56 64 56 C57 56 51 55 46 54 L34 66 L37 52 C28 48 23 41 22 34 Z" fill="#fff"/>
+          <path d="M44 26 C60 24 76 24 92 26 M44 34 C58 32 74 32 88 34 M44 42 C56 40 68 40 78 42"/>
+          <path d="M136 76 C130 88 122 96 112 100 M112 100 L124 98 M112 100 L118 88"/>
+          <path d="M150 44 l3 7 7 3 -7 3 -3 7 -3 -7 -7 -3 7 -3 z" fill="#171717" stroke="none"/>
+          <path d="M18 92 C26 88 34 90 38 96 C34 102 26 104 18 100 Z"/>
+          <path d="M20 96 C28 94 34 95 36 96"/>
+        </g>
+      </svg>
+    </div>
+    <div class="hero-foot">
+      <svg class="hero-wavy" viewBox="0 0 220 12" fill="none" stroke="#171717" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
+        <path class="draw" d="M2 8 q13 -9 26 0 t26 0 t26 0 t26 0 t26 0 t26 0"/>
+      </svg>
+      <p>贴进对话 · 选好意图 · 拿到像你写的回复</p>
+    </div>
+  </header>
+
+  <section class="blk reveal" id="sec1">
+    <div class="hd"><span class="no">01</span><h2>贴进对话</h2><span class="opt">也可以上传截图</span></div>
+    <textarea id="context" rows="5" placeholder="把最近几行聊天记录贴进来，一行一条，最后一行是对方最新发的那条。&#10;也可以点下面的按钮上传聊天截图，自动识别成文字。"></textarea>
+    <div class="shot-row">
+      <span class="shot-pick">
+        <button type="button" class="shot-btn" id="shotBtn">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+          上传聊天截图
+        </button>
+        <input type="file" id="shotFile" class="shot-file" accept="image/*" multiple tabindex="-1" aria-label="上传聊天截图">
+      </span>
+      <span class="shot-hint">自动识别成文字<span class="kbd-only"> · 也可直接 Ctrl+V 粘贴</span> · 最多 3 张</span>
+    </div>
+    <div class="shots" id="shots"></div>
+    <div class="shot-msg" id="shotMsg"></div>
+    <div class="hint">只贴需要的几条即可 · 内容与截图都仅用于本次生成和识别，不留存</div>
+    <div class="sub">补充说明 <small>可选</small></div>
+    <input type="text" id="extra" placeholder="例如：对方是领导 / 我想周五之前给 / 别提加班的事">
+    <div class="rule"></div>
+  </section>
+
+  <section class="blk reveal">
+    <div class="hd"><span class="no">02</span><h2>你想达到什么效果</h2></div>
+    <div class="chips" id="intents"></div>
+    <div class="hd hd-sub"><span class="no">03</span><h2>对方是谁</h2><span class="opt">决定语气分寸</span></div>
+    <div class="chips" id="personas"></div>
+    <input type="text" id="personaCustom" placeholder="填一下对方身份，如：导师、房东、社团部长">
+    <div class="rule"></div>
+  </section>
+
+  <section class="blk reveal" id="sec3">
+    <div class="hd"><span class="no">04</span><h2>让回复像你</h2><span class="opt">可选 · 会记住你的风格</span></div>
+    <div class="hint first">贴几条你平时发的消息，回复会更贴你的语气。默认只存在你自己的浏览器里；登录后可同步到云端，换设备也能用。</div>
+    <textarea id="style" rows="4" placeholder="一行一条，例如：好的我看看 / 哈哈哈可以 / 等我十分钟"></textarea>
+    <div class="shot-row">
+      <span class="shot-pick">
+        <button type="button" class="shot-btn" id="styleShotBtn">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+          上传截图提取
+        </button>
+        <input type="file" id="styleShotFile" class="shot-file" accept="image/*" multiple tabindex="-1" aria-label="上传截图提取">
+      </span>
+      <span class="shot-hint">只提取「你自己发的」那些消息 · 最多 2 张</span>
+    </div>
+    <div class="shots" id="styleShots"></div>
+    <div class="shot-msg" id="styleShotMsg"></div>
+
+    <div class="archive">
+      <div class="arch-head">
+        <span class="arch-title">风格档案</span>
+        <span class="shot-hint" id="archSyncHint">存一次，以后一键切换，不用重贴</span>
+      </div>
+      <div class="chips" id="archChips"></div>
+      <div class="arch-save">
+        <button type="button" class="mini" id="saveArchBtn">＋ 存为档案</button>
+        <button type="button" class="mini" id="useNoneBtn">本次不使用风格</button>
+        <span class="arch-form" id="archForm">
+          <input type="text" id="archName" placeholder="起个名，如：对朋友">
+          <button type="button" class="mini solid" id="archOk">保存</button>
+          <button type="button" class="mini" id="archCancel">取消</button>
+        </span>
+      </div>
+      <div class="shot-msg" id="archMsg"></div>
+    </div>
+
+    <div class="rule"></div>
+  </section>
+
+  <button id="go">
+    <span class="go-txt">生成回复</span>
+    <svg class="go-arrow" width="52" height="32" viewBox="0 0 52 32" fill="none" stroke="#171717" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <g filter="url(#rough)"><path d="M4 8 C18 5 34 10 43 21"/><path d="M43 21 L32 18 M43 21 L39 10"/></g>
+    </svg>
+  </button>
+  <button id="cancel">不想要了，取消</button>
+  <div class="status" id="status"></div>
+  <div id="results">
+    <div class="empty" id="emptyState">
+      <svg width="150" height="104" viewBox="0 0 150 104" fill="none" stroke="#171717" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <g filter="url(#rough)">
+          <path d="M24 30 C22 16 38 8 70 8 C104 8 120 18 118 32 C116 46 98 52 66 52 C58 52 52 51 47 50 L34 62 L37 48 C28 44 25 37 24 30 Z" fill="#fff"/>
+          <path d="M46 22 C62 20 78 20 94 22 M46 30 C60 28 76 28 90 30 M46 38 C58 36 70 36 80 38" stroke-opacity=".45"/>
+          <path d="M24 78 q9 -7 18 0 t18 0 t18 0 t18 0" stroke-opacity=".35"/>
+          <path d="M128 68 l3 7 7 3 -7 3 -3 7 -3 -7 -7 -3 7 -3 z" fill="#171717" stroke="none"/>
+        </g>
+      </svg>
+      <p>贴进对话，选好意图，妙回来</p>
+    </div>
+  </div>
+
+  <footer>
+    <div class="foot-mark">✦</div>
+    聊天内容与截图不上传、不留存 · 风格档案默认只存本机，登录后可跨设备同步 · 反馈只保存意图、回复与评价原因
+  </footer>
+</div>
+
+<div class="mask" id="authMask">
+  <div class="auth">
+    <button class="auth-close" id="authClose" type="button" aria-label="关闭">×</button>
+    <h3>登录妙回</h3>
+    <div class="tip">登录后风格档案会同步到云端<br>换手机、换电脑都能接着用</div>
+
+    <div class="auth-tabs" id="authTabs">
+      <button type="button" data-tab="pwd" class="on">密码登录</button>
+      <button type="button" data-tab="otp">验证码登录</button>
+      <button type="button" data-tab="reg">注册</button>
+    </div>
+
+    <div class="pane" id="panePwd">
+      <div class="auth-f"><input type="email" id="pwdEmail" placeholder="邮箱" autocomplete="email"></div>
+      <div class="auth-f"><input type="password" id="pwdPass" placeholder="密码" autocomplete="current-password"></div>
+      <button class="auth-submit" id="pwdGo" type="button">登 录</button>
+      <button class="auth-link" id="forgotLink" type="button">忘记密码？</button>
+    </div>
+
+    <div class="pane" id="paneOtp" style="display:none">
+      <div class="auth-f"><input type="email" id="otpEmail" placeholder="邮箱" autocomplete="email"></div>
+      <div class="auth-f auth-row">
+        <input type="text" id="otpCode" placeholder="邮箱验证码" inputmode="numeric" autocomplete="one-time-code">
+        <button class="auth-code" id="otpSend" type="button">获取验证码</button>
+      </div>
+      <button class="auth-submit" id="otpGo" type="button">登 录</button>
+    </div>
+
+    <div class="pane" id="paneReg" style="display:none">
+      <div class="auth-f"><input type="email" id="regEmail" placeholder="邮箱" autocomplete="email"></div>
+      <div class="auth-f auth-row">
+        <input type="text" id="regCode" placeholder="邮箱验证码" inputmode="numeric" autocomplete="one-time-code">
+        <button class="auth-code" id="regSend" type="button">获取验证码</button>
+      </div>
+      <div class="auth-f"><input type="password" id="regPass" placeholder="设置密码，至少 6 位" autocomplete="new-password"></div>
+      <button class="auth-submit" id="regGo" type="button">注 册</button>
+    </div>
+
+    <div class="pane" id="paneReset" style="display:none">
+      <div class="auth-f"><input type="email" id="rstEmail" placeholder="注册邮箱" autocomplete="email"></div>
+      <div class="auth-f auth-row">
+        <input type="text" id="rstCode" placeholder="邮件里的验证码" inputmode="numeric" autocomplete="one-time-code">
+        <button class="auth-code" id="rstSend" type="button">获取验证码</button>
+      </div>
+      <div class="auth-f"><input type="password" id="rstPass" placeholder="新密码，至少 6 位" autocomplete="new-password"></div>
+      <button class="auth-submit" id="rstGo" type="button">重 置 密 码</button>
+      <button class="auth-link" id="backLogin" type="button">← 回到密码登录</button>
+    </div>
+
+    <div class="auth-msg" id="authMsg"></div>
+    <div class="auth-note">聊天内容与截图始终不上传、不留存<br>同步的只有你主动保存的风格档案</div>
+  </div>
+</div>

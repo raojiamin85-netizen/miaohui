@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>妙回 · 视觉方向对比原型</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: "PingFang SC", "Microsoft YaHei", system-ui, sans-serif; background: #E9E7E2; color: #1A1A1A; }
+
+  /* ===== 外壳：方案切换条（不属于任何方案本身） ===== */
+  .chrome { position: sticky; top: 0; z-index: 50; background: rgba(233,231,226,.92); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(0,0,0,.12); padding: 14px 24px; display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+  .chrome .ct { font-size: 12px; letter-spacing: 3px; color: #6B6A66; }
+  .tabs { display: flex; gap: 8px; flex-wrap: wrap; }
+  .tabs button { font-family: inherit; font-size: 13px; padding: 8px 18px; border-radius: 999px; border: 1px solid rgba(0,0,0,.18); background: #fff; color: #1A1A1A; cursor: pointer; transition: .25s; }
+  .tabs button:hover { border-color: #000; }
+  .tabs button.on { background: #1A1A1A; border-color: #1A1A1A; color: #fff; }
+  .chrome .hint { font-size: 11px; color: #8A8983; margin-left: auto; }
+
+  .capsule { max-width: 1120px; margin: 0 auto; padding: 26px 24px 80px; }
+  .stage { display: none; }
+  .stage.on { display: block; animation: pop .45s cubic-bezier(.22,1,.36,1) both; }
+  @keyframes pop { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+  .cap { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: 14px; }
+  .cap h2 { font-size: 17px; font-weight: 600; letter-spacing: .5px; }
+  .cap .ref { font-size: 12px; color: #6B6A66; }
+  .cap .kw { font-size: 12px; color: #1A1A1A; background: #fff; border: 1px solid rgba(0,0,0,.14); border-radius: 999px; padding: 3px 12px; }
+  .canvas { border-radius: 18px; overflow: hidden; border: 1px solid rgba(0,0,0,.1); }
+
+  /* ============================================================
+     方案 A · 对话优先 —— 产品即 hero
+     ============================================================ */
+  .ca { background: #FAFAF9; color: #17171A; --acc: #E2603C; }
+  .ca .bar { display: flex; justify-content: space-between; align-items: center; padding: 20px 30px; border-bottom: 1px solid #E8E6E2; }
+  .ca .brand { font-size: 16px; font-weight: 600; letter-spacing: 4px; }
+  .ca .brand i { color: var(--acc); font-style: normal; }
+  .ca .bar .r { font-size: 12px; color: #9A9791; display: flex; gap: 16px; }
+  .ca .hero { padding: 54px 30px 10px; text-align: center; }
+  .ca .hero h1 { font-size: 44px; font-weight: 600; letter-spacing: -.5px; line-height: 1.25; }
+  .ca .hero h1 em { font-style: normal; color: var(--acc); }
+  .ca .hero p { margin-top: 14px; font-size: 14px; color: #77746E; }
+  .ca .stagewrap { padding: 40px 30px 46px; display: flex; gap: 44px; align-items: flex-start; justify-content: center; flex-wrap: wrap; }
+
+  .phone { width: 380px; background: #fff; border: 1px solid #E8E6E2; border-radius: 22px; padding: 16px 16px 12px; }
+  .phone .who { font-size: 12px; color: #9A9791; text-align: center; padding-bottom: 12px; border-bottom: 1px solid #F0EEEB; }
+  .msg { max-width: 74%; font-size: 14px; line-height: 1.6; padding: 9px 14px; border-radius: 16px; margin-top: 12px; }
+  .msg.you { background: #17171A; color: #fff; border-bottom-right-radius: 5px; margin-left: auto; }
+  .msg.them { background: #F0EFEC; color: #17171A; border-bottom-left-radius: 5px; }
+  .drafts { margin-top: 16px; border-top: 1px dashed #DEDBD6; padding-top: 14px; }
+  .drafts .dt { font-size: 11px; letter-spacing: 1px; color: #9A9791; margin-bottom: 10px; }
+  .dr { border: 1px solid #E4E1DC; border-radius: 14px; padding: 11px 14px; font-size: 14px; line-height: 1.55; margin-bottom: 9px; cursor: pointer; transition: .2s; display: flex; gap: 10px; }
+  .dr:hover { border-color: var(--acc); background: #FFF8F5; }
+  .dr b { font-size: 11px; color: var(--acc); font-weight: 600; padding-top: 3px; }
+  .dr.sel { border-color: var(--acc); background: #FFF4EF; }
+  .send { margin-top: 12px; display: flex; gap: 8px; }
+  .send .in { flex: 1; border: 1px solid #E4E1DC; border-radius: 999px; padding: 10px 16px; font-size: 13px; color: #A9A6A0; }
+  .send button { border: 0; background: var(--acc); color: #fff; border-radius: 999px; padding: 0 20px; font-family: inherit; font-size: 13px; cursor: pointer; }
+
+  .ca .panel { width: 300px; }
+  .ca .panel .lb { font-size: 11px; letter-spacing: 2px; color: #9A9791; margin: 0 0 10px; }
+  .ca .panel .lb:not(:first-child) { margin-top: 26px; }
+  .ca .chips { display: flex; flex-wrap: wrap; gap: 7px; }
+  .ca .chip { font-size: 12.5px; border: 1px solid #E4E1DC; background: #fff; border-radius: 999px; padding: 7px 14px; color: #4A4844; }
+  .ca .chip.on { background: #17171A; border-color: #17171A; color: #fff; }
+  .ca .fake { border: 1px solid #E4E1DC; background: #fff; border-radius: 12px; padding: 12px; font-size: 12.5px; color: #A9A6A0; line-height: 1.9; }
+  .ca .cta { margin-top: 22px; width: 100%; border: 0; background: #17171A; color: #fff; border-radius: 999px; padding: 14px; font-family: inherit; font-size: 14px; letter-spacing: 2px; cursor: pointer; }
+
+  /* ============================================================
+     方案 B · 暗色控制台
+     ============================================================ */
+  .cb { background: #0B0B0D; color: #ECEDEF; --acc: #CDF564; }
+  .cb .bar { display: flex; justify-content: space-between; align-items: center; padding: 16px 26px; border-bottom: 1px solid rgba(255,255,255,.07); background: #0E0E11; }
+  .cb .brand { font-size: 14px; font-weight: 500; letter-spacing: 3px; }
+  .cb .brand i { color: var(--acc); font-style: normal; }
+  .cb .bar .r { font-size: 11.5px; color: #71767F; display: flex; gap: 14px; align-items: center; }
+  .cb .bar .k { font-family: ui-monospace, Consolas, monospace; font-size: 11px; border: 1px solid rgba(255,255,255,.12); border-radius: 6px; padding: 2px 7px; color: #9AA0AA; }
+  .cb .body { padding: 46px 26px 46px; max-width: 860px; margin: 0 auto; }
+  .cb h1 { font-size: 38px; font-weight: 500; letter-spacing: -.4px; line-height: 1.28; }
+  .cb h1 span { color: #6E747E; }
+  .cb .lede { margin-top: 14px; font-size: 13.5px; color: #8A909A; line-height: 1.7; max-width: 520px; }
+  .cb .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 34px; }
+  .cb .card { background: #121216; border: 1px solid rgba(255,255,255,.07); border-radius: 14px; padding: 18px; }
+  .cb .card .no { font-family: ui-monospace, Consolas, monospace; font-size: 11px; color: var(--acc); letter-spacing: 1px; }
+  .cb .card h3 { font-size: 13.5px; font-weight: 500; margin: 10px 0 4px; }
+  .cb .card p { font-size: 12px; color: #6E747E; line-height: 1.6; }
+  .cb .card .fake { margin-top: 12px; border: 1px solid rgba(255,255,255,.09); background: #17171C; border-radius: 10px; padding: 11px; font-size: 12px; color: #5F646D; line-height: 1.9; }
+  .cb .chips { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 12px; }
+  .cb .chip { font-size: 12px; border: 1px solid rgba(255,255,255,.12); border-radius: 8px; padding: 6px 12px; color: #A8AEB8; }
+  .cb .chip.on { background: var(--acc); border-color: var(--acc); color: #0B0B0D; font-weight: 500; }
+  .cb .wide { grid-column: 1 / -1; }
+  .cb .out { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 14px; }
+  .cb .out .o { background: #17171C; border: 1px solid rgba(255,255,255,.08); border-radius: 12px; padding: 14px; }
+  .cb .out .o .s { font-family: ui-monospace, Consolas, monospace; font-size: 10.5px; color: #6E747E; letter-spacing: 1px; }
+  .cb .out .o .t { font-size: 13.5px; line-height: 1.6; margin-top: 10px; color: #E4E6EA; }
+  .cb .cta { margin-top: 26px; display: flex; align-items: center; gap: 14px; }
+  .cb .cta button { border: 0; background: var(--acc); color: #0B0B0D; font-family: inherit; font-size: 13.5px; font-weight: 500; border-radius: 999px; padding: 13px 26px; cursor: pointer; }
+
+  /* ============================================================
+     方案 C · 杂志排版（Swiss editorial）
+     ============================================================ */
+  .cc { background: #F7F4EE; color: #14130F; --acc: #C0392B; }
+  .cc .bar { display: flex; justify-content: space-between; align-items: flex-end; padding: 18px 34px 14px; border-bottom: 2px solid #14130F; }
+  .cc .brand { font-family: "Songti SC", "Source Han Serif SC", "Noto Serif SC", SimSun, serif; font-size: 20px; letter-spacing: 6px; }
+  .cc .bar .r { font-family: ui-monospace, Consolas, monospace; font-size: 10.5px; color: #7A776F; letter-spacing: 1px; }
+  .cc .body { padding: 0 34px 56px; }
+  .cc .kicker { font-family: ui-monospace, Consolas, monospace; font-size: 10.5px; letter-spacing: 2px; color: var(--acc); padding: 26px 0 0; }
+  .cc h1 { font-family: "Songti SC", "Source Han Serif SC", "Noto Serif SC", SimSun, serif; font-size: 62px; font-weight: 400; line-height: 1.16; letter-spacing: 2px; margin-top: 14px; }
+  .cc h1 em { font-style: normal; border-bottom: 3px solid var(--acc); }
+  .cc .rule { height: 1px; background: #14130F; opacity: .25; margin: 34px 0 0; }
+  .cc .cols { display: grid; grid-template-columns: repeat(12, 1fr); gap: 0 22px; }
+  .cc .lede { grid-column: 1 / 6; font-size: 14px; line-height: 1.95; color: #3D3B34; padding-top: 26px; }
+  .cc .lede .num { font-family: ui-monospace, Consolas, monospace; font-size: 10.5px; color: #8A877E; display: block; margin-bottom: 8px; letter-spacing: 1px; }
+  .cc .form { grid-column: 7 / 13; padding-top: 26px; border-left: 1px solid rgba(20,19,15,.18); padding-left: 22px; }
+  .cc .form .num { font-family: ui-monospace, Consolas, monospace; font-size: 10.5px; color: #8A877E; letter-spacing: 1px; }
+  .cc .form h2 { font-family: "Songti SC", "Source Han Serif SC", SimSun, serif; font-size: 21px; font-weight: 400; margin: 8px 0 16px; letter-spacing: 1px; }
+  .cc .line { border-bottom: 1px solid rgba(20,19,15,.3); padding-bottom: 10px; font-size: 13px; color: #A5A29A; margin-bottom: 22px; }
+  .cc .chips { display: flex; flex-wrap: wrap; gap: 0 18px; }
+  .cc .chip { font-size: 13px; padding: 4px 0; border-bottom: 1px solid rgba(20,19,15,.25); color: #57554E; }
+  .cc .chip.on { color: var(--acc); border-bottom: 2px solid var(--acc); }
+  .cc .out { margin-top: 34px; border-top: 1px solid rgba(20,19,15,.25); }
+  .cc .o { display: grid; grid-template-columns: 58px 1fr 130px; gap: 20px; align-items: start; padding: 22px 0; border-bottom: 1px solid rgba(20,19,15,.18); }
+  .cc .o .n { font-family: "Songti SC", SimSun, serif; font-size: 30px; color: var(--acc); line-height: 1; }
+  .cc .o .t { font-family: "Songti SC", "Source Han Serif SC", SimSun, serif; font-size: 19px; line-height: 1.75; }
+  .cc .o .m { font-family: ui-monospace, Consolas, monospace; font-size: 10.5px; color: #8A877E; line-height: 1.7; letter-spacing: .5px; }
+  .cc .cta { margin-top: 30px; display: inline-flex; align-items: center; gap: 12px; background: #14130F; color: #F7F4EE; font-family: inherit; font-size: 13.5px; letter-spacing: 2px; padding: 15px 30px; border: 0; cursor: pointer; }
+
+  /* ============================================================
+     方案 D · 柔和光感玻璃
+     ============================================================ */
+  .cd { position: relative; background: #0D0D18; color: #F2F3F7; overflow: hidden; --acc: #8B7CFF; }
+  .cd .aura { position: absolute; filter: blur(70px); opacity: .55; pointer-events: none; }
+  .cd .a1 { width: 380px; height: 380px; background: #6D4AFF; border-radius: 50%; top: -140px; left: -80px; }
+  .cd .a2 { width: 320px; height: 320px; background: #2FA8A0; border-radius: 50%; top: 60px; right: -90px; opacity: .4; }
+  .cd .a3 { width: 300px; height: 260px; background: #B04A7A; border-radius: 50%; bottom: -120px; left: 40%; opacity: .32; }
+  .cd .grain { position: absolute; inset: 0; opacity: .4; pointer-events: none;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3'/></filter><rect width='140' height='140' filter='url(%23n)' opacity='.35'/></svg>"); }
+  .cd .inner { position: relative; z-index: 2; }
+  .cd .bar { display: flex; justify-content: space-between; align-items: center; padding: 18px 30px; }
+  .cd .brand { font-size: 15px; font-weight: 500; letter-spacing: 4px; }
+  .cd .bar .r { font-size: 11.5px; color: rgba(255,255,255,.45); }
+  .cd .body { padding: 40px 30px 50px; text-align: center; }
+  .cd h1 { font-size: 46px; font-weight: 400; line-height: 1.24; letter-spacing: -.5px; }
+  .cd h1 span { background: linear-gradient(92deg, #A78BFA, #5EEAD4); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .cd .lede { margin: 16px auto 0; font-size: 13.5px; color: rgba(255,255,255,.6); max-width: 420px; line-height: 1.75; }
+  .cd .glass { max-width: 660px; margin: 38px auto 0; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.14); border-radius: 24px; padding: 22px; backdrop-filter: blur(22px); text-align: left; }
+  .cd .glass .row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .cd .chip { font-size: 12.5px; padding: 8px 15px; border-radius: 999px; border: 1px solid rgba(255,255,255,.16); color: rgba(255,255,255,.78); background: rgba(255,255,255,.05); }
+  .cd .chip.on { background: linear-gradient(92deg, #7C6BFF, #56C7BE); border-color: transparent; color: #fff; }
+  .cd .in { margin-top: 16px; background: rgba(0,0,0,.24); border: 1px solid rgba(255,255,255,.1); border-radius: 14px; padding: 14px; font-size: 13px; color: rgba(255,255,255,.4); line-height: 1.9; }
+  .cd .out { margin-top: 14px; display: grid; gap: 10px; }
+  .cd .o { display: flex; gap: 12px; padding: 14px 16px; border-radius: 16px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.11); backdrop-filter: blur(14px); }
+  .cd .o .n { font-size: 11px; color: #9C8CFF; padding-top: 3px; }
+  .cd .o .t { font-size: 14.5px; line-height: 1.65; }
+  .cd .o .s { font-size: 11.5px; color: rgba(255,255,255,.42); margin-top: 5px; }
+  .cd .cta { margin: 20px auto 0; display: block; border: 0; cursor: pointer; font-family: inherit; font-size: 14px; font-weight: 500; color: #fff; padding: 15px 44px; border-radius: 999px; background: linear-gradient(92deg, #7C6BFF, #56C7BE); }
+
+  @media (max-width: 900px) {
+    .ca .stagewrap { flex-direction: column; align-items: center; }
+    .ca .panel { width: 100%; max-width: 380px; }
+    .cb .grid { grid-template-columns: 1fr; }
+    .cb .out { grid-template-columns: 1fr; }
+    .cc h1 { font-size: 40px; }
+    .cc .lede, .cc .form { grid-column: 1 / -1; border-left: 0; padding-left: 0; }
+    .cc .o { grid-template-columns: 40px 1fr; }
+    .cc .o .m { display: none; }
+    .cd h1 { font-size: 32px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="chrome">
+  <span class="ct">妙回 · 视觉方向对比</span>
+  <div class="tabs" id="tabs">
+    <button data-t="A" class="on">A 对话优先</button>
+    <button data-t="B">B 暗色控制台</button>
+    <button data-t="C">C 杂志排版</button>
+    <button data-t="D">D 光感玻璃</button>
+  </div>
+  <span class="hint">点上方按钮切换 · 这只是原型，未替换线上版本</span>
+</div>
+
+<div class="capsule">
+
+  <!-- ================= A ================= -->
+  <section class="stage on" id="sA">
+    <div class="cap">
+      <h2>方案 A · 对话优先</h2>
+      <span class="ref">参考 iMessage / Cursor「把产品当 hero」</span>
+      <span class="kw">产品即界面</span>
+      <span class="kw">去插画</span>
+      <span class="kw">一屏就能演示</span>
+    </div>
+    <div class="canvas ca">
+      <div class="bar">
+        <div class="brand">妙<i>回</i></div>
+        <div class="r"><span>无账号可用</span><span>上传截图</span><span>风格档案</span></div>
+      </div>
+      <div class="hero">
+        <h1>把任何一条消息<br><em>回得漂亮</em></h1>
+        <p>贴进对话 · 选好意图 · 拿到像你写的回复</p>
+      </div>
+      <div class="stagewrap">
+        <div class="phone">
+          <div class="who">王姐</div>
+          <div class="msg them">小饶，明天那个方案能给我看看吗</div>
+          <div class="msg you">可以的，我今晚整理完发你</div>
+          <div class="msg them">好，另外周五的会你能帮忙做下记录吗</div>
+          <div class="drafts">
+            <div class="dt">三个说法 · 选一个直接发</div>
+            <div class="dr sel"><b>01</b><span>行，我记一份发群里</span></div>
+            <div class="dr"><b>02</b><span>没问题，会前我把模板发你确认下</span></div>
+            <div class="dr"><b>03</b><span>可以，周五我全程在，放心</span></div>
+          </div>
+          <div class="send"><div class="in">说点什么…</div><button>发送</button></div>
+        </div>
+        <div class="panel">
+          <div class="lb">01 · 聊天上下文</div>
+          <div class="fake">把最近几行聊天记录贴进来<br>或上传截图自动识字</div>
+          <div class="lb">02 · 你想达到什么效果</div>
+          <div class="chips">
+            <span class="chip on">答应并推进</span><span class="chip">答应但争取条件</span>
+            <span class="chip">委婉拒绝</span><span class="chip">拖延一下</span>
+            <span class="chip">接住话头</span><span class="chip">表达关心</span>
+          </div>
+          <div class="lb">03 · 对方是谁</div>
+          <div class="chips">
+            <span class="chip">领导</span><span class="chip on">同事</span><span class="chip">朋友</span><span class="chip">＋ 自己填</span>
+          </div>
+          <button class="cta">生成回复</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= B ================= -->
+  <section class="stage" id="sB">
+    <div class="cap">
+      <h2>方案 B · 暗色控制台</h2>
+      <span class="ref">参考 Linear / Raycast / Vercel（2026 暗色优先）</span>
+      <span class="kw">精密克制</span>
+      <span class="kw">等宽标签</span>
+      <span class="kw">键盘优先</span>
+    </div>
+    <div class="canvas cb">
+      <div class="bar">
+        <div class="brand">妙<i>回</i></div>
+        <div class="r"><span class="k">⌘ ↵ 生成</span><span class="k">⌘ K 档案</span><span>未登录 · 本地可用</span></div>
+      </div>
+      <div class="body">
+        <h1>把任何一条消息<br><span>回得漂亮</span></h1>
+        <p class="lede">贴进对话，选好意图，拿到三条可直接发送的回复。不上传聊天内容，不留存记录。</p>
+
+        <div class="grid">
+          <div class="card">
+            <div class="no">01 / CONTEXT</div>
+            <h3>聊天上下文</h3>
+            <p>粘贴文字，或上传截图自动识别说话人</p>
+            <div class="fake">对方：明天那个方案能给我看看吗<br>我：可以的，我今晚整理完发你</div>
+          </div>
+          <div class="card">
+            <div class="no">02 / INTENT</div>
+            <h3>你想达到什么效果</h3>
+            <p>意图先行 —— 先想清楚要什么，再决定怎么说</p>
+            <div class="chips">
+              <span class="chip on">答应并推进</span><span class="chip">委婉拒绝</span>
+              <span class="chip">拖延一下</span><span class="chip">砍价谈判</span>
+            </div>
+          </div>
+          <div class="card wide">
+            <div class="no">03 / OUTPUT</div>
+            <h3>三条候选</h3>
+            <p>每条附一句策略说明，不是同一句话的三种改写</p>
+            <div class="out">
+              <div class="o"><div class="s">DIRECT</div><div class="t">行，我今晚整理完发你</div></div>
+              <div class="o"><div class="s">CONDITIONAL</div><div class="t">可以，明天上午给到你方便吗</div></div>
+              <div class="o"><div class="s">WARM</div><div class="t">没问题，我先把框架搭出来给你过一眼</div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="cta">
+          <button>生成回复</button>
+          <span class="k">⌘ ↵</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= C ================= -->
+  <section class="stage" id="sC">
+    <div class="cap">
+      <h2>方案 C · 杂志排版</h2>
+      <span class="ref">参考 Anthropic「editorial beige」/ Cursor / Flow 的衬线 hero</span>
+      <span class="kw">衬线大字</span>
+      <span class="kw">可见网格</span>
+      <span class="kw">排版即主视觉</span>
+    </div>
+    <div class="canvas cc">
+      <div class="bar">
+        <div class="brand">妙回</div>
+        <div class="r">NO. 01 · 2026 / 视觉原型</div>
+      </div>
+      <div class="body">
+        <div class="kicker">回复助手 · 意图先行</div>
+        <h1>把任何一条消息，<br><em>回得漂亮</em>。</h1>
+        <div class="rule"></div>
+        <div class="cols">
+          <div class="lede">
+            <span class="num">导 言 / 001</span>
+            你不是不会说话。你只是没想清楚这条消息想达到什么效果——所以工具不给你「万能回复」，它先问你意图。
+          </div>
+          <div class="form">
+            <div class="num">01 — 聊天上下文</div>
+            <div class="line" style="margin-top:10px">对方：明天那个方案能给我看看吗</div>
+            <div class="num">02 — 你想达到什么效果</div>
+            <h2>选择意图</h2>
+            <div class="chips">
+              <span class="chip on">答应并推进</span><span class="chip">答应但争取条件</span>
+              <span class="chip">委婉拒绝</span><span class="chip">拖延一下</span>
+            </div>
+          </div>
+        </div>
+        <div class="out">
+          <div class="o">
+            <div class="n">01</div>
+            <div class="t">行，我今晚整理完发你。</div>
+            <div class="m">直接 · 最短<br>适合熟人</div>
+          </div>
+          <div class="o">
+            <div class="n">02</div>
+            <div class="t">可以，明天上午给到你方便吗？</div>
+            <div class="m">带条件 · 留余地<br>适合同事</div>
+          </div>
+          <div class="o">
+            <div class="n">03</div>
+            <div class="t">没问题，我先把框架搭出来给你过一眼。</div>
+            <div class="m">推进 · 显专业<br>适合领导</div>
+          </div>
+        </div>
+        <button class="cta">生成回复 →</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= D ================= -->
+  <section class="stage" id="sD">
+    <div class="cap">
+      <h2>方案 D · 光感玻璃</h2>
+      <span class="ref">参考 Arc / Perplexity / Composio 的渐变折射 + 噪点</span>
+      <span class="kw">柔和光晕</span>
+      <span class="kw">玻璃材质</span>
+      <span class="kw">注意：易撞款</span>
+    </div>
+    <div class="canvas cd">
+      <div class="aura a1"></div><div class="aura a2"></div><div class="aura a3"></div>
+      <div class="grain"></div>
+      <div class="inner">
+        <div class="bar">
+          <div class="brand">妙回</div>
+          <div class="r">无账号 · 不留存 · 风格可同步</div>
+        </div>
+        <div class="body">
+          <h1>把任何一条消息<br><span>回得漂亮</span></h1>
+          <p class="lede">贴进对话，选好意图，三条可直接发送的回复。会照着你平时说话的样子来。</p>
+          <div class="glass">
+            <div class="row">
+              <span class="chip on">答应并推进</span><span class="chip">答应但争取条件</span>
+              <span class="chip">委婉拒绝</span><span class="chip">接住话头</span><span class="chip">幽默化解</span>
+            </div>
+            <div class="in">对方：明天那个方案能给我看看吗<br>我：可以的，我今晚整理完发你</div>
+            <div class="out">
+              <div class="o"><div class="n">01</div><div><div class="t">行，我今晚整理完发你</div><div class="s">直接，最短</div></div></div>
+              <div class="o"><div class="n">02</div><div><div class="t">可以，明天上午给到你方便吗</div><div class="s">带条件，留余地</div></div></div>
+              <div class="o"><div class="n">03</div><div><div class="t">没问题，我先把框架搭出来给你过一眼</div><div class="s">推进，显专业</div></div></div>
+            </div>
+          </div>
+          <button class="cta">生成回复</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+  const tabs = document.getElementById('tabs');
+  tabs.addEventListener('click', e => {
+    const b = e.target.closest('button[data-t]');
+    if (!b) return;
+    tabs.querySelectorAll('button').forEach(x => x.classList.remove('on'));
+    b.classList.add('on');
+    document.querySelectorAll('.stage').forEach(s => s.classList.remove('on'));
+    document.getElementById('s' + b.dataset.t).classList.add('on');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+</script>
+</body>
+</html>
