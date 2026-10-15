@@ -1,4 +1,4 @@
-# 生成「妙回」体验二维码（纯图，供简历 / 作品集使用）
+# 生成「妙回」体验二维码（纯图，供分享使用）
 # 跑法：<venv>/Scripts/python.exe -X utf8 make-qr.py
 import os
 import qrcode

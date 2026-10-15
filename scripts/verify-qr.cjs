@@ -40,7 +40,7 @@ function dataUri(p) { return "data:image/png;base64," + fs.readFileSync(p).toStr
 
   const a = await decode(QR_PATH, "纯二维码 PNG");
 
-  // 从卡片里裁出二维码区域再解码，模拟"扫简历上印的那张图"
+  // 从卡片里裁出二维码区域再解码，模拟"扫分享出去的那张图"
   const b64 = dataUri(CARD);
   const c = await page.evaluate(async ({ src, expect }) => {
     const im = new Image();
@@ -71,7 +71,7 @@ function dataUri(p) { return "data:image/png;base64," + fs.readFileSync(p).toStr
   lines.push("    结果   : " + (c.text === EXPECT ? "PASS 从卡片整图也能扫出" : "FAIL 卡片上扫不出"));
   lines.push("");
   const pass = a.text === EXPECT && c.text === EXPECT;
-  lines.push(pass ? "总判定: PASS —— 两位校验都对上，印在简历上可正常扫描" : "总判定: FAIL");
+  lines.push(pass ? "总判定: PASS —— 两位校验都对上，印在分享物料上可正常扫描" : "总判定: FAIL");
 
   fs.writeFileSync(path.join(ROOT, "scripts", "qr-verify-report.txt"), lines.join("\n") + "\n", "utf8");
   console.log(lines.join("\n"));
