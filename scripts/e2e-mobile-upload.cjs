@@ -32,8 +32,46 @@ const check = (name, cond, extra) => {
   cond ? pass++ : fail++;
 };
 
+// 替身云 SDK：只实现本脚本会碰到的方法
+const SDK_STUB = `
+window.WorkBuddyCloud = {
+  createWorkBuddyCloud: function () {
+    var cfg = window.__stub || {};
+    return {
+      auth: {
+        onAuthStateChange: function () {},
+        getSession: async function () { return { data: null }; },
+        getUser: async function () { return { data: null }; },
+        signOut: async function () { return {}; }
+      },
+      database: { from: function () { return { insert: async function () { return { error: null }; } }; } },
+      llm: {
+        models: { list: async function () { return cfg.models || []; } },
+        chat: { completions: { create: function (a) { return cfg.create(a); } } }
+      }
+    };
+  }
+};
+`;
+
+// 识别结果按固定内容流式吐出来，让「识别 → 回填文字框」这一段可复现
+const OCR_INIT = `
+window.__stub = {
+  models: [{ id: "deepseek-v4.1-flash", name: "DeepSeek-V4.1-Flash", supportsImages: true, disabled: false }],
+  create: function () {
+    var pieces = ["对方：小饶，", "明天那个方案", "能给我看看吗\\n", "我：可以的，", "我今晚整理完发你"];
+    return (async function* () {
+      for (var i = 0; i < pieces.length; i++) {
+        await new Promise(function (r) { setTimeout(r, 60); });
+        yield { choices: [{ delta: { content: pieces[i] } }] };
+      }
+    })();
+  }
+};
+`;
+
 (async () => {
-  lines.push("妙回 V0.13 移动端上传截图回归测试（iPhone 仿真 + 触摸）");
+  lines.push("妙回移动端上传截图回归测试（iPhone 仿真 + 触摸，云端用替身）");
   lines.push("时间：" + new Date().toISOString());
   lines.push("");
 
@@ -46,6 +84,12 @@ const check = (name, cond, extra) => {
   const page = await ctx.newPage();
   const errors = [];
   page.on("pageerror", e => errors.push(String(e && e.message || e)));
+
+  // 用替身云 SDK：本脚本要验的是「手指点上去能不能唤起选择器、流程能不能收敛」，
+  // 跟云端无关，所以不该被真实接口的偶发波动带崩（v0.15 真因此假失败过一次）。
+  await page.route(u => u.href.indexOf("workbuddy-cloud-sdk") >= 0, r =>
+    r.fulfill({ status: 200, contentType: "application/javascript", body: SDK_STUB }));
+  await page.addInitScript(OCR_INIT);
 
   await page.goto(URL, { waitUntil: "domcontentloaded", timeout: 45000 });
   await page.waitForSelector("#intents .chip", { timeout: 20000 });
@@ -140,9 +184,9 @@ const check = (name, cond, extra) => {
       state = await page.evaluate(() => (document.querySelector("#shots .shot .badge") || {}).textContent || "");
     }
     const finalCtx = await page.evaluate(() => document.getElementById("context").value);
-    check("11 识别流程跑通（状态收敛，非卡在等待/识别中）", state === "已提取" || state === "失败",
-      "最终状态=" + state + (finalCtx ? "  写入上下文 " + finalCtx.length + " 字" : "  上下文为空"));
-    lines.push("      · 识别结果：" + (state === "已提取" ? "成功，文字已填进 01 输入框" : "本次失败（多为网络/模型波动，不影响本次要验的『能否唤起选择器』）"));
+    check("11 识别流程跑通并把文字回填到 01 输入框", state === "已提取" && finalCtx.length > 0,
+      "最终状态=" + state + "  写入上下文 " + finalCtx.length + " 字");
+    lines.push("      · 识别结果：" + (state === "已提取" ? "成功，文字已填进 01 输入框：" + finalCtx.replace(/\n/g, " / ") : "本次失败（不影响本次要验的『能否唤起选择器』）"));
   } catch (e) {
     check("09 手指点在「上传聊天截图」上唤起了文件选择器", false, "未触发 filechooser：" + e.message);
   }

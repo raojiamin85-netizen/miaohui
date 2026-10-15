@@ -201,6 +201,8 @@
   .stage::before { content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--ink); margin-right: 9px; vertical-align: 2px; animation: dotPulse 1.4s ease-in-out infinite; }
   @keyframes dotPulse { 0%, 100% { opacity: .3; transform: scale(.8); } 50% { opacity: 1; transform: scale(1.15); } }
   .elapsed { font-family: var(--hand); font-size: 13px; color: var(--faint); letter-spacing: 1px; }
+  /* 等待期间把「已经写好 N 条」先露出来（v0.15）：有东西在动，等待才不显得卡住 */
+  .stage-sub { font-family: var(--hand); font-size: 14px; color: var(--faint); letter-spacing: 1px; margin-top: 8px; }
 
   /* ============================= 结果（E2 的 .r 栅格：号码左、正文右上、策略右下） ============================= */
   .cand {
@@ -413,8 +415,6 @@
     <div class="shots" id="shots"></div>
     <div class="shot-msg" id="shotMsg"></div>
     <div class="hint">只贴需要的几条即可 · 内容与截图都仅用于本次生成和识别，不留存</div>
-    <div class="sub">补充说明 <small>可选</small></div>
-    <input type="text" id="extra" placeholder="例如：对方是领导 / 我想周五之前给 / 别提加班的事">
     <div class="rule"></div>
   </section>
 
@@ -462,6 +462,8 @@
       <div class="shot-msg" id="archMsg"></div>
     </div>
 
+    <div class="sub">补充说明 <small>可选</small></div>
+    <input type="text" id="extra" placeholder="例如：对方是领导 / 我想周五之前给 / 别提加班的事">
     <div class="rule"></div>
   </section>
 
@@ -584,7 +586,17 @@ const SYSTEM_PROMPT = [
 
 const $ = id => document.getElementById(id);
 const esc = s => { const d = document.createElement("div"); d.textContent = s; return d.innerHTML; };
-let cloud = null, model = null, selectedIntent = null, selectedPersona = "", personaCustomOn = false, lastTurn = null, generating = false;
+let cloud = null, model = null, modelChain = [], selectedIntent = null, selectedPersona = "", personaCustomOn = false, lastTurn = null, generating = false;
+
+/* 模型候选链（2026-10-15 实测后定，见 docs/eval-log.md）。
+   起因：用户反馈「生成回复等了两分钟」。实测同一 prompt 的首字时延差 50 倍——
+   平台默认的 auto 首字 125.3s（另一次 >75s 完全没有响应），
+   而 flash 档 0.9s~7.6s、固定 3 条候选的输出长度一样。
+   所以不再用「模型列表里第一个未禁用项」，改成显式优先顺序：
+   第一个候选首字超时或报错，就自动换下一个，用户不必等一个抽风的模型。
+   注：截图识别复用同一个模型，因此只收 supportsImages 为真的模型。 */
+const PREFERRED_MODELS = ["deepseek-v4.1-flash", "glm-5.3-flash", "deepseek-v4-flash", "glm-4.6v"];
+const FIRST_TOKEN_MS = 8000;   // 首字等不到就换下一个候选（慢模型都是卡在首字，不是卡在输出）
 
 INTENTS.forEach((it, i) => {
   const b = document.createElement("button");
@@ -691,19 +703,11 @@ function makeShotBox(cfg) {
   }
 
   async function ocrOne(dataUrl) {
-    let out = "";
-    for await (const chunk of cloud.llm.chat.completions.create({
-      model: model.id,
-      messages: [
-        { role: "system", content: OCR_SYSTEM },
-        { role: "user", content: [{ type: "text", text: cfg.instruction }, { type: "image_url", image_url: { url: dataUrl } }] }
-      ],
-      stream: true,
-      temperature: 0.1
-    })) {
-      const d = chunk.choices[0] && chunk.choices[0].delta;
-      if (d && d.content) out += d.content;
-    }
+    // 识别同样走候选链：图片识别比纯文本慢，同样是「候选不回话就换一个」
+    const out = await callLLM([
+      { role: "system", content: OCR_SYSTEM },
+      { role: "user", content: [{ type: "text", text: cfg.instruction }, { type: "image_url", image_url: { url: dataUrl } }] }
+    ], { temperature: 0.1 });
     let lines = out.split("\n")
       .map(l => l.trim().replace(/^[-*•]\s*/, "").replace(/^\d+[.、)]\s*/, ""))
       .filter(l => l && !/^```/.test(l) && !/^\[.*\]$/.test(l) && !/^EMPTY$/i.test(l));
@@ -737,25 +741,46 @@ function makeShotBox(cfg) {
     if (model.supportsImages === false || model.disabledMultimodal === true) { msg("当前模型不支持图片识别，可以手动粘贴文字", true); return; }
     st.running = true; btnEl.disabled = true;
     let total = 0, failed = 0;
-    for (const s of pend) {
-      if (!st.shots.includes(s)) continue;
-      s.state = "ocring"; render();
-      msg(cfg.styleMode ? "正在从截图里找你自己说的话…" : "正在识别截图…", false);
-      try {
-        const lines = await ocrOne(s.dataUrl);
-        s.state = "ok";
-        if (st.shots.includes(s)) { append(lines.join("\n")); total += lines.length; }
-      } catch (e) { s.state = "err"; failed++; }
-      render();
+    try {
+      for (const s of pend) {
+        if (!st.shots.includes(s)) continue;
+        s.state = "ocring"; render();
+        msg(cfg.styleMode ? "正在从截图里找你自己说的话…" : "正在识别截图…", false);
+        try {
+          const lines = await ocrOne(s.dataUrl);
+          s.state = "ok";
+          if (st.shots.includes(s)) { append(lines.join("\n")); total += lines.length; }
+        } catch (e) { s.state = "err"; failed++; }
+        render();
+      }
+    } finally {
+      // 用 finally 保证「识别中」的置灰一定会解开，不会因为中途抛错让按钮永久失灵
+      st.running = false; btnEl.disabled = false;
     }
-    st.running = false; btnEl.disabled = false;
     if (failed) msg("有 " + failed + " 张没提取到，可以重试或手打几条", true, true);
     else if (total) msg(cfg.styleMode ? "已提取 " + total + " 条你自己发的话，存成档案下次就不用再弄了" : "已识别 " + total + " 行，填到上面的框里了，可以自己改完再生成");
     else { msg(""); if (cfg.styleMode) msg("截图里没找到你自己发的消息，换一张只含对话的图试试", true); }
   }
 
-  btnEl.onclick = () => fileEl.click();
-  fileEl.onchange = e => { add(e.target.files); e.target.value = ""; };
+  /* 真机上「点了没反应」最难办的地方是：用户说不清到底哪一步没发生。
+     所以在触屏设备上给这次点击装个 4 秒的看门狗——选择器正常弹出会先失焦/回到前台，
+     看门狗随之取消；真没弹出来，才给一句能照做的替代方案。 */
+  let pickTimer = null;
+  const touchOnly = () => !!(window.matchMedia && matchMedia("(pointer: coarse)").matches);
+  function armPickWatch() {
+    if (!touchOnly()) return;
+    clearTimeout(pickTimer);
+    pickTimer = setTimeout(() => {
+      msg("没弹出选择器的话：把截图复制后直接粘到上面的框里，或换系统浏览器再打开一次", true);
+    }, 4000);
+  }
+  function disarmPickWatch() { clearTimeout(pickTimer); pickTimer = null; }
+
+  btnEl.onclick = () => { armPickWatch(); fileEl.click(); };
+  fileEl.onclick = armPickWatch;
+  fileEl.onchange = e => { disarmPickWatch(); add(e.target.files); e.target.value = ""; };
+  window.addEventListener("focus", disarmPickWatch);
+  window.addEventListener("blur", disarmPickWatch);
   return {
     add: add,
     clear: () => { st.shots = []; render(); msg(""); }
@@ -1033,7 +1058,7 @@ function renderAcct() {
     box.appendChild(wrap);
   } else {
     const ver = document.createElement("span");
-    ver.className = "ver"; ver.textContent = "V0.14";
+    ver.className = "ver"; ver.textContent = "V0.15";
     const b = document.createElement("button");
     b.type = "button"; b.className = "acct-btn";
     b.innerHTML = '<span class="cloud-dot"></span>登录同步';
@@ -1160,6 +1185,13 @@ function showStatus(html, isErr) {
 }
 
 async function init() {
+  // SDK 是从 CDN 加载的，国内网络下偶发拉不下来。缺了它整个应用会「看起来正常但什么都不响应」，
+  // 所以这里先明确报错，而不是让用户对着一个没反应的按钮猜。（v0.15）
+  if (typeof WorkBuddyCloud === "undefined") {
+    showStatus("依赖脚本没加载成功（多半是网络问题），刷新页面重试一次", true);
+    $("go").disabled = true;
+    return;
+  }
   cloud = WorkBuddyCloud.createWorkBuddyCloud({ endpoint: PC.endpoint, publishableKey: PC.publishableKey });
 
   // 先恢复登录态：登录过一次，下次打开自动还是登录状态
@@ -1176,12 +1208,53 @@ async function init() {
   if (session) syncArchives();
 
   try {
-    const models = await cloud.llm.models.list();
-    model = models.find(m => m.disabled !== true);
+    const all = (await cloud.llm.models.list()).filter(m => m.disabled !== true);
+    const byId = new Map(all.map(m => [m.id, m]));
+    const preferred = PREFERRED_MODELS.map(id => byId.get(id)).filter(m => m && m.supportsImages === true);
+    // 兜底：平台换了模型名或下架时，还有支持图片的模型可用；但把实测很慢的 auto / default 排除
+    const rest = all.filter(m => m.supportsImages === true && m.id !== "auto" && m.id !== "default" && preferred.indexOf(m) < 0).slice(0, 2);
+    modelChain = preferred.concat(rest);
+    model = modelChain[0] || null;
+    window.__modelChain = modelChain.map(m => m.id);
     if (!model) { showStatus("暂时没有可用的模型，请稍后再试", true); $("go").disabled = true; }
   } catch (e) {
     showStatus("模型服务连接失败，请刷新重试", true); $("go").disabled = true;
   }
+  checkNewVersion();
+}
+
+/* 平台不给静态资源发 Cache-Control / ETag，浏览器可能长时间拿缓存里的旧版 HTML，
+   表现就是「我明明发了新版，打开还是旧的」（v0.12 → v0.14 期间真实踩到过）。
+   这里主动取一个不带缓存的 version.json 对比，落后就在底部提示，点一下强制重新取。 */
+async function checkNewVersion() {
+  try {
+    const res = await fetch("version.json?t=" + Date.now(), { cache: "no-store" });
+    if (!res.ok) return;
+    const j = await res.json();
+    // 版本元素是 .ver 这个 class（不是 id），读错会静默失效——踩过一次
+    const el = document.querySelector(".ver");
+    const mine = el ? (el.textContent || "").trim() : "";
+    if (j && j.version && mine && j.version !== mine) showUpdateBar(j.version, mine);
+  } catch (e) {}
+}
+
+function showUpdateBar(latest, mine) {
+  if ($("verBar")) return;
+  const bar = document.createElement("div");
+  bar.id = "verBar";
+  bar.style.cssText = "position:fixed;left:0;right:0;bottom:0;z-index:99;background:#171717;color:#FBF7F0;"
+    + "font-size:13px;line-height:1.6;letter-spacing:.5px;padding:10px 16px;display:flex;gap:12px;"
+    + "align-items:center;justify-content:center;flex-wrap:wrap";
+  const t = document.createElement("span");
+  t.textContent = "你打开的是旧版 " + mine + "，新版 " + latest + " 已发布";
+  const b = document.createElement("button");
+  b.type = "button";
+  b.textContent = "刷新到新版";
+  b.style.cssText = "border:1px solid #FBF7F0;background:transparent;color:#FBF7F0;border-radius:2px;"
+    + "padding:3px 12px;font-size:13px;cursor:pointer";
+  b.onclick = () => { location.href = location.pathname + "?v=" + String(latest).replace(/[^\w.]/g, ""); };
+  bar.appendChild(t); bar.appendChild(b);
+  document.body.appendChild(bar);
 }
 
 function buildUserPrompt() {
@@ -1205,21 +1278,75 @@ function parseCandidates(text) {
   return list.slice(0, 3);
 }
 
-async function callLLM(messages) {
-  const controller = new AbortController();
-  window.__abort = controller;
-  let full = "";
-  for await (const chunk of cloud.llm.chat.completions.create({
-    model: model.id,
-    messages,
-    stream: true,
-    temperature: 0.9,
-    signal: controller.signal
-  })) {
-    const d = chunk.choices[0]?.delta;
-    if (d && d.content) full += d.content;
+/* 从「还在流的半截 JSON」里捞出已经写完的 reply，用于等待期间的进度提示。
+   流式输出是 JSON，本来要全部拿到才能解析，所以这里只做「猜」——猜错不影响最终结果。 */
+function liveReplies(text) {
+  const out = [];
+  const re = /"reply"\s*:\s*"((?:[^"\\]|\\.)*)"/g;
+  let m;
+  while ((m = re.exec(text))) out.push(m[1].replace(/\\n/g, " ").replace(/\\"/g, '"'));
+  return out;
+}
+
+/* 带候选链与首字看门狗的单次调用。
+   - 走模型候选链：某个候选首字迟迟不来或直接报错，就自动换下一个（最多试 3 个）
+   - onProgress 回传已生成的部分文本，界面据此显示「已经写好 N 条」
+   - 点「取消」只中断当前这一次尝试，立刻抛 AbortError */
+async function callLLM(messages, opts) {
+  const o = opts || {};
+  let chain = (o.chain || modelChain || []).filter(Boolean).slice(0, 3);
+  if (!chain.length && model) chain = [model];
+  if (!chain.length) throw new Error("no model");
+  const budget = o.firstTokenMs === undefined ? FIRST_TOKEN_MS : o.firstTokenMs;
+  let lastErr = null;
+  window.__canceled = false;
+  for (let i = 0; i < chain.length; i++) {
+    const m = chain[i];
+    window.__activeModel = m.id;
+    const ac = new AbortController();
+    window.__abort = ac;
+    const deadline = Date.now() + budget;
+    let got = false, full = "", it = null;
+    try {
+      const stream = cloud.llm.chat.completions.create({
+        model: m.id,
+        messages,
+        stream: true,
+        temperature: o.temperature === undefined ? 0.9 : o.temperature,
+        signal: ac.signal
+      });
+      it = stream[Symbol.asyncIterator]();
+      while (true) {
+        let step;
+        if (got) {
+          const p = it.next(); p.catch(() => {});
+          step = await p;
+        } else {
+          let timer = null;
+          const p = it.next(); p.catch(() => {});
+          const guard = new Promise((_, rej) => {
+            timer = setTimeout(() => rej(Object.assign(new Error("first token timeout"), { firstTokenTimeout: true })), Math.max(500, deadline - Date.now()));
+          });
+          try { step = await Promise.race([p, guard]); } finally { clearTimeout(timer); }
+        }
+        if (step.done) break;
+        const d = step.value && step.value.choices && step.value.choices[0] && step.value.choices[0].delta;
+        if (d && d.content) {
+          got = true; full += d.content;
+          if (o.onProgress) o.onProgress(full);
+        }
+      }
+      // 有的实现被 abort 时是安静结束（done）而不是抛错，所以这里再确认一次取消状态
+      if (window.__canceled) { const err = new Error("aborted"); err.name = "AbortError"; throw err; }
+      return full;
+    } catch (e) {
+      if (window.__canceled) { const err = new Error("aborted"); err.name = "AbortError"; throw err; }
+      try { ac.abort(); } catch (e2) {}
+      try { if (it && it.return) it.return(); } catch (e3) {}
+      lastErr = e;
+    }
   }
-  return full;
+  throw lastErr || new Error("all candidates failed");
 }
 
 const STAGES = [
@@ -1235,7 +1362,13 @@ function startStages() {
   const render = () => {
     const sec = Math.floor((Date.now() - t0) / 1000);
     while (stageIdx < STAGES.length - 1 && sec * 1000 >= STAGES[stageIdx + 1][0]) stageIdx++;
-    showStatus('<div class="track"><i></i></div><div class="stage">' + STAGES[stageIdx][1] + '</div><div class="elapsed">已用 ' + sec + ' 秒</div>', false);
+    // 已经写出几条先露出来：等待期间有东西在动，比一句「正在想」好得多
+    const live = window.__live || {};
+    const sub = live.n ? '<div class="stage-sub">已经写好 ' + live.n + ' 条' + (live.first ? '（' + esc(live.first) + '）' : '') + '</div>' : '';
+    // 真的慢了才把当前在用的模型名说出来，方便用户反馈「哪个模型慢」
+    const slow = sec >= 8 && window.__activeModel ? ' · 模型 ' + esc(window.__activeModel) : '';
+    showStatus('<div class="track"><i></i></div><div class="stage">' + STAGES[stageIdx][1] + '</div>' + sub
+      + '<div class="elapsed">已用 ' + sec + ' 秒' + slow + '</div>', false);
   };
   render();
   stageTimer = setInterval(render, 500);
@@ -1383,7 +1516,9 @@ async function generate(adjustment, keepResults) {
     } else {
       messages = [{ role: "system", content: SYSTEM_PROMPT }, { role: "user", content: buildUserPrompt() }];
     }
-    const answer = await callLLM(messages);
+    const answer = await callLLM(messages, {
+      onProgress: (t) => { const rs = liveReplies(t); window.__live = { n: rs.length, first: rs[0] || "" }; }
+    });
     lastTurn = { prompt: messages[messages.length - 2].content, answer };
     stopStages();
     showStatus("", false);
@@ -1394,6 +1529,8 @@ async function generate(adjustment, keepResults) {
     else {
       const code = (e && e.error && e.error.code) || "";
       let msg = "生成失败了，点「生成回复」重试";
+      // 模型返回了但内容不可用（没吐完 / 不是合法 JSON），和网络类故障分开说
+      if (/bad json|empty|no model|all candidates|first token/.test((e && e.message) || "")) msg = "模型这次没给出可用结果，点「生成回复」再试一次";
       if (code.startsWith("quota_")) msg = "今天的用量用完了，明天再来试试";
       else if (code.startsWith("auth_")) msg = "服务鉴权异常，请刷新页面重试";
       else if (code.startsWith("gateway_") || code.startsWith("model_")) msg = "模型服务开小差了，稍等几秒重试一次";
@@ -1401,13 +1538,14 @@ async function generate(adjustment, keepResults) {
     }
   } finally {
     generating = false;
+    window.__live = null;
     $("go").disabled = false;
     $("go").classList.remove("generating");
   }
 }
 
 $("go").onclick = () => generate(null, false);
-$("cancel").onclick = () => { if (window.__abort) window.__abort.abort(); };
+$("cancel").onclick = () => { window.__canceled = true; if (window.__abort) window.__abort.abort(); };
 $("personaCustom").addEventListener("input", () => {
   document.querySelectorAll("#personas .chip").forEach(c => c.classList.remove("on"));
   selectedPersona = "";
