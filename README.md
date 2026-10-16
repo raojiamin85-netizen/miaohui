@@ -87,71 +87,37 @@
 
 ```
 miaohui/
-├── index.html                    # 应用本体（V0.17，单文件前端）
+├── index.html                    # 应用本体（单文件前端，V0.17）
 ├── index.v0.17.logic.html        # 当前逻辑层基线（构建审计的比对基准，勿改）
-├── index.v0.10.backup.html       # 历史逻辑层基线（保留，用于对比）
-├── version.json                  # 构建时写入的版本号，页面用它自检"我是不是旧版缓存"
-├── manifest.webmanifest          # PWA 清单
-├── pwa/
-│   ├── icon.svg                  # 品牌图标源文件
-│   └── icons/                    # 180 / 192 / 512 PNG（iOS 主屏必须真 PNG）
-├── docs/
-│   ├── product-definition.md     # ⭐ 产品定义与逐版决策记录（最能反映思考过程）
-│   ├── decision-unbind-vs-platform.md  # 架构取舍记录：托管依赖边界与迁移成本
-│   ├── verification.md           # 本版验证结果快照（14 项审计 / 22+17+22+22 功能回归 / 28 版面 / 线上一致性）
-│   ├── eval-log.md               # 生成质量与性能的实测记录
-│   └── screenshots/              # README 配图
-├── scripts/
-│   ├── build-shell.cjs           # 视觉层 + 逻辑层机械拼接 + 14 项审计
-│   ├── shell-v0.17.html          # 当前视觉层
-│   ├── smoke-v012.cjs            # 桌面功能冒烟（22 例）
-│   ├── e2e-mobile-upload.cjs     # 移动端触摸回归（17 例）
-│   ├── e2e-model-chain.cjs       # 模型候选链 / 首字兜底 / 版本自检（22 例）
-│   ├── e2e-events.cjs            # 匿名埋点回归（22 例：上报了什么、没上报什么）
-│   ├── shot-v017.cjs             # 版面与提示图标复核（28 例，桌面 + 手机两档）
-│   ├── verify-events.cjs         # 线上埋点权限实测（能写不能读）
-│   ├── e2e-real-latency.cjs      # 真实接口端到端耗时实测
-│   ├── probe-latency2.cjs        # 各模型耗时对照实测（模型选型的证据）
-│   ├── check-live.cjs            # 线上逐字节一致性验证
-│   └── e2e-*.mjs / diag-*.mjs    # 认证 / 跨设备 / 清空 等端到端链路
-└── prototypes/                   # 设计过程留档：早期两版方向原型 + 提示图标候选页
+├── index.v0.10.backup.html       # 历史逻辑层基线（保留用于对比）
+├── version.json                  # 页面用它自检"我是不是旧版缓存"
+├── manifest.webmanifest + pwa/   # PWA 清单与 180/192/512 图标
+├── LICENSE                       # MIT
+├── docs/                         # product-definition（产品定义与逐版决策）/ verification / eval-log
+├── scripts/                      # 构建脚本与全部自动化检查（逐个清单见「质量保障」）
+└── prototypes/                   # 设计过程留档：早期方向原型 + 提示图标候选页
 ```
+
+想深看的话，`docs/product-definition.md`（为什么这么设计、逐版推翻了什么）和 `docs/eval-log.md`（实测数据）是最值得读的两份。
 
 ## 本地运行
 
 纯静态前端，**不需要构建步骤**，直接用浏览器打开 `index.html` 即可查看界面与交互。
 
-注意：生成 / 登录 / 云同步依赖平台的云服务接口，仅在部署域名下可用（接口有 Origin 白名单，详见 `docs/decision-unbind-vs-platform.md`）。本地打开时界面与交互完整，但调用接口会失败。
+注意：生成 / 登录 / 云同步依赖平台的云服务接口，仅在部署域名下可用（接口有 Origin 白名单，详见 [`docs/decision-unbind-vs-platform.md`](docs/decision-unbind-vs-platform.md)）。本地打开时界面与交互完整，但调用接口会失败。
 
-复现构建与全部检查（需 Node + Playwright，用本机 Edge）：
+复现构建与验证（需 Node + Playwright，用本机 Edge）。每条命令查什么见上面的「质量保障」：
 
 ```bash
-# 生成 index.html 并跑 14 项审计
-node scripts/build-shell.cjs
-
-# 桌面功能冒烟 22 例
-node scripts/smoke-v012.cjs
-
-# 移动端触摸回归 17 例
-node scripts/e2e-mobile-upload.cjs
-
-# 模型候选链 / 首字兜底 / 版本自检 22 例（用替身 SDK，不消耗额度）
-node scripts/e2e-model-chain.cjs
-
-# 匿名埋点 22 例（断言上报内容，尤其是「没上报什么」）
-node scripts/e2e-events.cjs
-
-# 版面与提示图标复核 28 例（波浪线位置 / 长说明是否真的不在页面上 / 气泡三条通道）
-node scripts/shot-v017.cjs
-
-# 线上埋点权限实测：匿名能写、读回被拒
-node scripts/verify-events.cjs
-
-# 真实接口端到端耗时实测（会真的调用模型）
-node scripts/e2e-real-latency.cjs
-
-# 线上一致性验证
-node scripts/check-live.cjs
+node scripts/build-shell.cjs          # 构建 + 14 项审计
+node scripts/smoke-v012.cjs           # 桌面功能冒烟 22 例
+node scripts/e2e-mobile-upload.cjs    # 移动端触摸回归 17 例
+node scripts/e2e-model-chain.cjs      # 模型候选链 / 首字兜底 / 版本自检 22 例
+node scripts/e2e-events.cjs           # 匿名埋点 22 例
+node scripts/shot-v017.cjs            # 版面与提示图标 28 例
+node scripts/verify-events.cjs        # 线上埋点权限实测（能写不能读）
+node scripts/e2e-real-latency.cjs     # 真实接口端到端耗时（会真的调用模型）
+node scripts/check-live.cjs           # 线上逐字节一致性
 ```
 
 ## 已知边界与取舍
@@ -169,6 +135,10 @@ node scripts/check-live.cjs
 用起来哪里别扭、哪条回复"太假"、还想要什么意图——都欢迎开 [Issue](issues) 说。
 
 生成质量靠真实使用反馈迭代，**反馈越具体越有用**：原文是什么、你想达到什么效果、实际拿到的回复是什么。
+
+## License
+
+[MIT](LICENSE) — 随便用、随便改、随便商用，保留版权声明即可。
 
 ---
 
