@@ -4,6 +4,13 @@ docs/evidence/
 # 脚本自动生成的报告（内容见 docs/verification.md，是刻意维护的版本）
 scripts/*.txt
 
+# 评测与脚本的控制台输出（本地临时，别误提交）
+*.out
+*.log
+
+# 评测时临时生成的"上一版产物"，用于同口径前后对比（可从 git 重新生成）
+index-v0*.html
+
 # 依赖与构建产物
 node_modules/
 dist/

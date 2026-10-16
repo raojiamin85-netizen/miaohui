@@ -1,15 +1,16 @@
-/* 换皮不换骨：把视觉层（scripts/shell-v0.17.html）与逻辑层（index.v0.17.logic.html 的内联 JS）
+/* 换皮不换骨：把视觉层（scripts/shell-v0.18.html）与逻辑层（index.v0.18.logic.html 的内联 JS）
    机械拼接成 index.html，并逐项审计「功能有没有掉」。
    用途：改版可复现 + 上线前自检。跑法见文件末尾。
-   注意：index.v0.17.logic.html 是当前逻辑层基线，不要改它；改逻辑要另存新基线并同步这里的 BASE，
-   否则审计第 6 项「逻辑层逐字节一致」失去意义。历史基线 index.v0.10.backup.html 原样保留。 */
+   注意：index.v0.18.logic.html 是当前逻辑层基线，不要改它；改逻辑要另存新基线并同步这里的 BASE，
+   否则审计第 6 项「逻辑层逐字节一致」失去意义。
+   历史基线 index.v0.10.backup.html、index.v0.17.logic.html 原样保留（v0.17 是提示词改动的对比基准）。 */
 const fs = require("fs");
 const path = require("path");
 
 const ROOT = path.resolve(__dirname, "..");
-const SHELL = path.join(__dirname, "shell-v0.17.html");
-const VER_TO = "V0.17";     // 本次产出的版本号
-const BASE = path.join(ROOT, "index.v0.17.logic.html");
+const SHELL = path.join(__dirname, "shell-v0.18.html");
+const VER_TO = "V0.18";     // 本次产出的版本号
+const BASE = path.join(ROOT, "index.v0.18.logic.html");
 const OUT = path.join(ROOT, "index.html");
 const LOG = path.join(__dirname, "build-report.txt");
 

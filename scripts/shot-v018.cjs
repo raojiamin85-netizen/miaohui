@@ -1,5 +1,5 @@
 /**
- * V0.17 版面与提示图标复核（跑真页面 index.html，file:// 打开，不联网）。
+ * V0.18 版面与提示图标复核（跑真页面 index.html，file:// 打开，不联网）。
  *
  * 复核的是这次改版真正承诺的三件事：
  *   ① 波浪线只在 01 / 02 / 03 / 04 四个编号块的末尾各一条；
@@ -8,7 +8,7 @@
  *   ③ 手机上点得开、气泡不出屏、触屏热区够大。
  *
  * 跑法：NODE_PATH=<node workspace>/node_modules node scripts/shot-v017.cjs
- * 截图落到 docs/evidence/v017-*.png（不进仓库）。
+ * 截图落到 docs/evidence/v018-*.png（不进仓库）。
  */
 const { chromium } = require("playwright");
 const path = require("path");
@@ -141,7 +141,7 @@ const tipState = (page, i) => page.evaluate(i => {
     idle.map(s => s.vis + "/" + s.op).join(" "));
 
   // ---- ② 悬停出、移开收 ----
-  await shot(page, "#sec1", "v017-desktop-01.png");          // 静止态：页面干净，一个气泡都不露
+  await shot(page, "#sec1", "v018-desktop-01.png");          // 静止态：页面干净，一个气泡都不露
   await page.locator(".mi").nth(0).hover();
   await page.waitForTimeout(420);
   const hov = await tipState(page, 0);
@@ -152,7 +152,7 @@ const tipState = (page, i) => page.evaluate(i => {
     "left=" + hov.left + " right=" + hov.right + " vw=" + hov.vw + " arrow=" + hov.arrow);
   ok("01 区气泡文案就是原来那句",
     hov.txt === "只贴需要的几条即可 · 内容与截图都仅用于本次生成和识别，不留存", hov.txt);
-  await shot(page, ".mi", "v017-desktop-01-tip.png", 6, 108);   // 上方留出气泡的位置
+  await shot(page, ".mi", "v018-desktop-01-tip.png", 6, 108);   // 上方留出气泡的位置
   await page.mouse.move(10, 10);
   await page.waitForTimeout(400);
   const off = await tipState(page, 0);
@@ -202,8 +202,8 @@ const tipState = (page, i) => page.evaluate(i => {
     (await page.evaluate(() => document.querySelectorAll(".mi.on").length)) === 0);
 
   // ---- 截图：02/03 区、04 区 ----
-  await shot(page, ".blk:nth-of-type(2)", "v017-desktop-0203.png");
-  await shot(page, "#sec3", "v017-desktop-04.png");
+  await shot(page, ".blk:nth-of-type(2)", "v018-desktop-0203.png");
+  await shot(page, "#sec3", "v018-desktop-04.png");
 
   // ---- 结果区：候选之间只剩细线，regen 也只有细线（不再每条顶一道波浪）----
   await page.evaluate(() => {
@@ -230,7 +230,7 @@ const tipState = (page, i) => page.evaluate(i => {
   ok("候选之间是 1px 细线（第 1 条没有顶线）",
     lines.candBorder.join(",") === "0px,1px,1px", lines.candBorder.join(","));
   ok("候选 / 重新生成都不再顶一道波浪", lines.candWave.every(v => v === "none"), lines.candWave.join("/"));
-  await shot(page, "#results", "v017-desktop-results.png");
+  await shot(page, "#results", "v018-desktop-results.png");
   await page.close();
 
   /* ==================== 手机 393 ==================== */
@@ -266,8 +266,8 @@ const tipState = (page, i) => page.evaluate(i => {
   }
   await m.locator(".mi").nth(0).tap();
   await m.waitForTimeout(300);
-  await shot(m, ".mi", "v017-mobile-01-tip.png", 6, 110);
-  await shot(m, "#sec3", "v017-mobile-04.png");
+  await shot(m, ".mi", "v018-mobile-01-tip.png", 6, 110);
+  await shot(m, "#sec3", "v018-mobile-04.png");
   await m.close();
 
   /* ==================== 有档案时：档案图标自己消失 ==================== */
@@ -286,7 +286,7 @@ const tipState = (page, i) => page.evaluate(i => {
   ok("有档案时：空态不显示、图标自己也让位",
     withArch.chips === 1 && withArch.archIcon === "none",
     JSON.stringify(withArch));
-  await shot(p2, "#sec3", "v017-desktop-04-with-archive.png");
+  await shot(p2, "#sec3", "v018-desktop-04-with-archive.png");
   await p2.close();
 
   await browser.close();
