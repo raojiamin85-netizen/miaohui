@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>妙回 · 提示图标（品牌小人 + 叹号）8 个候选</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --ink: #171717;
+    --sub: #6E6E6E;
+    --soft: #9C9A95;
+    --faint: #B4B2AD;
+    --hair: #EBE9E5;
+    --dash: #D9D7D2;
+    --mark: #B5451B;
+    --hand: "ZCOOL KuaiLe", "PingFang SC", "Microsoft YaHei", sans-serif;
+    --hen: "Caveat", "ZCOOL KuaiLe", cursive;
+    --wave-bold: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 9' preserveAspectRatio='none'%3E%3Cpath d='M2 6 C30 2 70 8 118 4' fill='none' stroke='%23171717' stroke-width='2.6' stroke-linecap='round'/%3E%3C/svg%3E");
+  }
+  html { -webkit-font-smoothing: antialiased; }
+  body { font-family: "PingFang SC", "Microsoft YaHei", system-ui, sans-serif; background: #fff; color: var(--ink); line-height: 1.75; padding: 0 0 90px; }
+  .pg { max-width: 1024px; margin: 0 auto; padding: 0 40px; }
+
+  .pt { padding: 40px 0 8px; }
+  .pt h1 { font-family: var(--hand); font-size: 29px; font-weight: 400; letter-spacing: 2px; }
+  .pt .lead { font-size: 13.5px; color: var(--sub); margin-top: 14px; line-height: 2; max-width: 760px; }
+  .pt .lead b { font-weight: 400; color: var(--ink); }
+  .sec { margin-top: 52px; }
+  .sec > h2 { font-family: var(--hand); font-size: 21px; font-weight: 400; letter-spacing: 1.5px; padding-bottom: 12px; border-bottom: 1.5px solid var(--hair); }
+  .sec .note { font-size: 12.5px; color: var(--faint); margin-top: 14px; line-height: 1.95; }
+  .sec .note b { font-weight: 400; color: var(--sub); }
+  .bar { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; margin-top: 16px; }
+  .tbtn { border: none; border-bottom: 1.5px dashed var(--dash); background: transparent; padding: 4px 2px 7px; font-family: var(--hand); font-size: 14px; letter-spacing: 1px; color: var(--sub); cursor: pointer; transition: all .25s; }
+  .tbtn:hover { border-bottom-color: var(--ink); color: var(--ink); }
+
+  /* ---------- 图标本体 ---------- */
+  .ico { display: block; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .ico.filled, .ico.filled path { }
+  .big { color: var(--ink); }
+
+  /* ---------- 「?」/「!」两版 ----------
+     别想用 CSS 切。实测（两版切换前后截图像素哈希比对）：
+       .vb { display: none; }              ← 命中，<use> 里的内容确实跟着这条走
+       body.bang .vb { display: inline; }  ← 不命中，祖先部分在 <use> 外面就断了
+     结论：作用在元素自身的选择器能进 shadow tree，带「外部祖先」的选择器进不去。
+     所以改成加载时用 JS 把每个候选克隆成 icNq / icNb 两版，直接换 <use> 的 href。 ---------- */
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; margin-top: 26px; }
+  .card { position: relative; border: 1px solid var(--hair); border-radius: 4px; padding: 16px 20px 18px; }
+  .card .tag { display: block; font-family: var(--hand); font-size: 14px; letter-spacing: 1px; color: var(--ink); }
+  .card .tag em { font-family: var(--hen); font-style: normal; font-size: 15px; color: var(--faint); margin-left: 7px; letter-spacing: 0; }
+  .show { display: flex; align-items: center; gap: 26px; margin: 16px 0 14px; }
+  .show .box { flex: none; width: 78px; text-align: center; }
+  .show .box .cap { font-size: 10.5px; color: var(--faint); letter-spacing: .5px; margin-top: 6px; }
+  .show .line { flex: 1; min-width: 0; }
+  .show .line .cap { font-size: 10.5px; color: var(--faint); letter-spacing: .5px; margin-bottom: 6px; }
+  .card .why { font-size: 12px; color: var(--faint); line-height: 1.9; padding-top: 13px; border-top: 1px dashed var(--hair); }
+  .card .why b { font-weight: 400; color: var(--sub); }
+
+  /* ---------- 悬停 / 点按出提示 ---------- */
+  .mi { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; padding: 0; border: none; background: transparent; color: var(--faint); cursor: help; vertical-align: -7px; transition: color .22s ease; }
+  .mi:hover, .mi:focus-visible, .mi.on { color: var(--ink); z-index: 30; }
+  .mi:focus-visible { outline: 1.5px dashed var(--dash); outline-offset: 4px; border-radius: 3px; }
+  .mi-tip { position: absolute; bottom: calc(100% + 13px); left: 50%; width: max-content; max-width: min(288px, calc(100vw - 28px)); padding: 12px 15px; background: #fff; border: 1px solid var(--hair); border-radius: 4px; box-shadow: 0 12px 30px rgba(23,23,23,.10); font-size: 12.5px; line-height: 1.9; letter-spacing: .4px; color: var(--sub); text-align: left; opacity: 0; visibility: hidden; pointer-events: none; z-index: 20; transform: translate(-50%, 7px); transition: opacity .2s ease, transform .26s cubic-bezier(.22,1,.36,1), visibility .2s; }
+  .mi-tip::after { content: ""; position: absolute; left: var(--arrow, 50%); top: 100%; width: 10px; height: 10px; margin-left: -5px; margin-top: -5.5px; background: #fff; border-right: 1px solid var(--hair); border-bottom: 1px solid var(--hair); transform: rotate(45deg); }
+  .mi:hover .mi-tip, .mi:focus-visible .mi-tip, .mi.on .mi-tip { opacity: 1; visibility: visible; transform: translate(-50%, 0); }
+  .mi::before { content: ""; position: absolute; left: -3px; right: -3px; bottom: -1px; height: 9px; background-image: var(--wave-bold); background-repeat: no-repeat; background-position: center; background-size: 100% 9px; transform: scaleX(0); transform-origin: left center; transition: transform .32s cubic-bezier(.22,1,.36,1); }
+  .mi:hover::before, .mi:focus-visible::before, .mi.on::before { transform: scaleX(1); }
+
+  /* ---------- 尺寸阶梯 ---------- */
+  .ladder { margin-top: 22px; }
+  .lrow { display: flex; align-items: flex-end; gap: 26px; padding: 14px 0; border-bottom: 1px dashed var(--hair); flex-wrap: wrap; }
+  .lrow .nm { flex: none; width: 156px; font-family: var(--hand); font-size: 13px; letter-spacing: 1px; color: var(--sub); }
+  .lcell { text-align: center; }
+  .lcell .cap { font-size: 9.5px; color: var(--faint); margin-top: 4px; }
+  .lcell .ico { color: var(--ink); margin: 0 auto; }
+
+  /* ---------- 真实位置 ---------- */
+  .real { border: 1px dashed var(--dash); border-radius: 4px; padding: 30px 26px 34px; margin-top: 24px; }
+  .hd { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: 18px; }
+  .hd .no { font-family: var(--hand); font-size: 13px; color: var(--faint); letter-spacing: 1px; }
+  .hd h3 { font-family: var(--hand); font-size: 24px; font-weight: 400; letter-spacing: 1.5px; }
+  .hd .opt { font-family: var(--hand); font-size: 12px; color: var(--faint); letter-spacing: 1px; }
+  textarea { width: 100%; border: none; border-bottom: 1.5px solid var(--hair); padding: 8px 2px 14px; font-size: 16px; font-family: inherit; resize: vertical; background: transparent; color: var(--ink); line-height: 1.95; }
+  textarea::placeholder { color: var(--soft); }
+  textarea:focus { outline: none; border-bottom-color: var(--ink); }
+  .shot-row { display: flex; align-items: center; gap: 18px; margin-top: 20px; flex-wrap: wrap; }
+  .shot-btn { display: inline-flex; align-items: center; gap: 8px; border: none; border-bottom: 1.5px dashed var(--dash); background: transparent; padding: 4px 2px 7px; font-family: var(--hand); font-size: 15px; letter-spacing: 1px; color: var(--sub); cursor: pointer; }
+  .shot-hint { font-size: 12.5px; color: var(--faint); letter-spacing: .5px; }
+  .hint-bar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 20px; }
+  .trust { font-size: 13px; letter-spacing: .5px; color: var(--sub); }
+  .vari { margin-top: 32px; }
+  .vari > .cap { font-family: var(--hand); font-size: 15px; letter-spacing: 1px; color: var(--sub); margin-bottom: 6px; }
+  footer { margin-top: 66px; padding-top: 30px; border-top: 1.5px solid var(--hair); font-size: 12.5px; color: var(--faint); line-height: 2; }
+
+  @media (max-width: 620px) {
+    .pg { padding: 0 20px; }
+    .grid { grid-template-columns: 1fr; }
+    .lrow .nm { width: 100%; }
+  }
+  @media (hover: none), (pointer: coarse) { .mi { width: 34px; height: 34px; } }
+</style>
+</head>
+<body class="bang">
+<!-- ============ 图标定义：全部一只手画一遍，下面用 <use> 反复引用 ============
+     每个候选里面都有两版标点：<g class="vq"> 是问号版、<g class="vb"> 是叹号版。
+     加载时 JS 会把它拆成 #icNb（叹号）/ #icNq（问号）两个定义，页面上的 <use> 指哪个显哪个。
+     为什么不用 CSS 切：CSS 够不到 <use> 里面的内容（见上面 <style> 里那段注释）。 ============ -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <filter id="rough" x="-18%" y="-18%" width="136%" height="136%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.014" numOctaves="2" seed="7" result="n"/>
+      <feDisplacementMap in="SourceGraphic" in2="n" scale="1.1" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+
+    <!-- V1：品牌原版小人（60x52 原样搬过来），牌子上的三个点换成 ? / ! -->
+    <g id="ic1"><g filter="url(#rough)"><g transform="translate(0.8,2.0) scale(0.39)">
+      <path d="M16 22 C12 8 26 2 36 6 C45 10 47 20 43 27 C39 21 32 18 24 19 C20 19.6 17.6 20.6 16 22 Z" fill="#171717" stroke="none"/>
+      <path d="M16 22 C15 30 19 35 26 37 C30 34 32 29 32 24" stroke-width="4.4"/>
+      <path d="M21 23 C23.5 25.6 27 25.6 29.5 23" stroke-width="4.4"/>
+      <path d="M26 37 C34 41 41 39 46 33 M46 33 L52 21" stroke-width="4.4"/>
+      <path d="M48 19 L6 25 L9 39 L51 33 Z" fill="#fff" stroke-width="4.4"/>
+      <g class="vq">
+        <path d="M21.4 27.6 C21.4 25.4 23.5 24.0 26.0 24.0 C28.4 24.0 30.1 25.5 30.1 27.4 C30.1 29.5 27.1 30.1 26.3 31.2 C26.0 31.7 26.0 32.2 26.0 32.6" stroke-width="3.6"/>
+        <circle cx="26.0" cy="34.9" r="2.05" fill="#171717" stroke="none"/>
+      </g>
+      <g class="vb">
+        <path d="M26.0 23.6 C25.85 25.9 25.85 28.4 26.0 31.4" stroke-width="3.4"/>
+        <circle cx="26.0" cy="34.9" r="2.05" fill="#171717" stroke="none"/>
+      </g>
+    </g></g></g>
+
+    <!-- V2：放大取景 —— 头 + 帽 + 方形气泡里的 ? / !（去掉身子） -->
+    <g id="ic2"><g filter="url(#rough)">
+      <circle cx="8.4" cy="12.4" r="6.6" stroke-width="1.8"/>
+      <path d="M5.6 12.6 C6.9 14.1 9.1 14.1 10.4 12.6" stroke-width="1.7"/>
+      <path d="M1.9 11.2 C1.0 5.4 6.2 1.8 11.6 2.9 C15.6 3.7 17.6 7.2 16.3 10.9 C14.6 7.8 11.4 6.4 8.5 6.9 C5.8 7.4 3.4 8.9 1.9 11.2 Z" fill="#171717" stroke="none"/>
+      <path d="M13.9 6.7 L23.0 5.3 L23.8 16.8 L14.7 18.2 Z" fill="#fff" stroke-width="1.7"/>
+      <g class="vq">
+        <path d="M17.0 9.9 C17.0 8.0 18.3 6.7 19.7 6.7 C21.2 6.7 22.2 7.9 22.2 9.2 C22.2 11.0 20.0 11.4 19.4 12.4 C19.1 12.9 19.1 13.4 19.1 13.9" stroke-width="1.6"/>
+        <circle cx="19.4" cy="15.7" r="0.78" fill="#171717" stroke="none"/>
+      </g>
+      <g class="vb">
+        <path d="M19.4 8.4 C19.28 10.1 19.28 11.9 19.4 13.6" stroke-width="1.7"/>
+        <circle cx="19.4" cy="15.6" r="0.85" fill="#171717" stroke="none"/>
+      </g>
+    </g></g>
+
+    <!-- V3：只留那块牌子 + ! / ! -->
+    <g id="ic3"><g filter="url(#rough)">
+      <path d="M2.6 5.8 L20.6 3.4 L22.2 18.4 L4.2 20.8 Z" fill="#fff" stroke-width="1.8"/>
+      <g class="vq">
+        <path d="M8.6 10.8 C8.6 8.6 10.2 7.1 12.1 7.1 C13.9 7.1 15.0 8.4 15.0 10.0 C15.0 12.2 12.4 12.6 11.7 14.0 C11.4 14.6 11.4 15.2 11.4 15.8" stroke-width="1.75"/>
+        <circle cx="11.9" cy="17.8" r="0.85" fill="#171717" stroke="none"/>
+      </g>
+      <g class="vb">
+        <path d="M12.0 7.6 C11.85 9.9 11.85 12.1 12.0 14.4" stroke-width="1.85"/>
+        <circle cx="12.0" cy="16.9" r="1.0" fill="#171717" stroke="none"/>
+      </g>
+    </g></g>
+
+    <!-- V4：小人 + 旁边飘一个 ? / !（完整的小人，不要牌子） -->
+    <g id="ic4"><g filter="url(#rough)">
+      <circle cx="8.0" cy="11.0" r="6.0" stroke-width="1.8"/>
+      <path d="M5.4 11.2 C6.6 12.6 8.6 12.6 9.8 11.2" stroke-width="1.7"/>
+      <path d="M1.8 9.9 C0.9 4.4 5.9 1.2 11.0 2.2 C14.8 2.9 16.7 6.3 15.4 9.8 C13.8 6.8 10.8 5.5 8.1 6.0 C5.6 6.5 3.3 7.8 1.8 9.9 Z" fill="#171717" stroke="none"/>
+      <path d="M6.6 16.4 C5.3 18.7 4.4 20.7 3.9 22.7 M9.4 16.4 C10.3 18.7 11.0 20.7 11.5 22.7" stroke-width="1.8"/>
+      <g class="vq">
+        <path d="M15.4 9.6 C15.4 6.8 17.5 4.9 19.9 4.9 C22.1 4.9 23.4 6.5 23.4 8.3 C23.4 10.9 20.1 11.3 19.1 12.9 C18.6 13.7 18.6 14.5 18.6 15.3" stroke-width="1.95"/>
+        <circle cx="18.6" cy="17.6" r="0.95" fill="#171717" stroke="none"/>
+      </g>
+      <g class="vb">
+        <path d="M19.2 5.4 C19.05 8.1 19.05 10.8 19.2 13.5" stroke-width="2.0"/>
+        <circle cx="19.2" cy="15.9" r="1.05" fill="#171717" stroke="none"/>
+      </g>
+    </g></g>
+
+    <!-- V5：帽子 + ? / !（不要脸，帽子本身就是最认得出的符号） -->
+    <g id="ic5"><g filter="url(#rough)">
+      <path d="M1.4 17.2 C0.5 11.2 4.4 6.9 8.9 7.3 C13.0 7.7 15.6 10.8 15.6 17.2 C13.5 15.4 11.6 14.6 8.5 14.6 C5.9 14.6 3.4 15.5 1.4 17.2 Z" fill="#171717" stroke="none"/>
+      <g class="vq">
+        <path d="M15.6 9.2 C15.6 6.6 17.6 4.8 19.8 4.8 C21.9 4.8 23.1 6.4 23.1 8.2 C23.1 10.7 19.9 11.1 18.9 12.7 C18.4 13.5 18.4 14.3 18.4 15.1" stroke-width="2.0"/>
+        <circle cx="18.4" cy="17.4" r="0.95" fill="#171717" stroke="none"/>
+      </g>
+      <g class="vb">
+        <path d="M18.9 5.2 C18.75 7.9 18.75 10.5 18.9 13.2" stroke-width="2.05"/>
+        <circle cx="18.9" cy="15.6" r="1.0" fill="#171717" stroke="none"/>
+      </g>
+    </g></g>
+
+    <!-- V6：头就是一个大 ? / !，帽子戴在它上面 -->
+    <g id="ic6"><g filter="url(#rough)">
+      <g class="vq">
+        <path d="M5.6 12.4 C5.6 8.8 8.6 6.4 12.0 6.4 C15.1 6.4 17.0 8.5 17.0 11.1 C17.0 14.4 12.2 15.0 10.9 17.0 C10.2 18.0 10.2 19.0 10.2 20.0" stroke-width="2.2"/>
+        <circle cx="10.2" cy="22.4" r="1.15" fill="#171717" stroke="none"/>
+      </g>
+      <g class="vb">
+        <path d="M10.6 6.0 C10.45 9.4 10.45 12.8 10.6 15.9" stroke-width="3.0"/>
+        <circle cx="10.6" cy="19.2" r="2.2" fill="#171717" stroke="none"/>
+      </g>
+      <path d="M4.6 7.4 C3.8 2.4 8.2 0.2 13.0 1.0 C17.2 1.7 19.8 4.6 19.4 7.4 C17.1 5.8 14.6 5.0 12.0 5.0 C9.4 5.0 6.9 5.9 4.6 7.4 Z" fill="#171717" stroke="none"/>
+    </g></g>
+
+    <!-- V7：全用细线，不填黑 —— 最轻的一版 -->
+    <g id="ic7"><g filter="url(#rough)">
+      <circle cx="8.0" cy="11.4" r="6.0" stroke-width="1.5"/>
+      <path d="M5.4 11.6 C6.6 13.0 8.6 13.0 9.8 11.6" stroke-width="1.4"/>
+      <path d="M1.9 10.6 C1.1 5.4 5.9 2.2 11.0 3.2 C14.7 3.9 16.5 7.1 15.3 10.4 C13.7 7.6 10.8 6.3 8.2 6.8 C5.9 7.2 3.4 8.4 1.9 10.6 Z" stroke-width="1.5"/>
+      <path d="M6.6 16.8 C5.3 19.0 4.4 20.9 3.9 22.8 M9.4 16.8 C10.3 19.0 11.0 20.9 11.5 22.8" stroke-width="1.5"/>
+      <g class="vq">
+        <path d="M15.4 10.0 C15.4 7.2 17.5 5.3 19.9 5.3 C22.1 5.3 23.4 6.9 23.4 8.7 C23.4 11.3 20.1 11.7 19.1 13.3 C18.6 14.1 18.6 14.9 18.6 15.7" stroke-width="1.6"/>
+        <circle cx="18.6" cy="18.0" r="0.9" fill="#171717" stroke="none"/>
+      </g>
+      <g class="vb">
+        <path d="M19.2 5.8 C19.05 8.5 19.05 11.2 19.2 13.8" stroke-width="1.6"/>
+        <circle cx="19.2" cy="16.2" r="1.0" fill="#171717" stroke="none"/>
+      </g>
+    </g></g>
+
+    <!-- V8：小人站在下面，头顶冒出一个气泡写 ? / ! -->
+    <g id="ic8"><g filter="url(#rough)">
+      <circle cx="6.6" cy="16.0" r="4.0" stroke-width="1.6"/>
+      <path d="M4.9 16.2 C5.7 17.1 6.9 17.1 7.7 16.2" stroke-width="1.5"/>
+      <path d="M2.8 14.9 C2.2 11.1 5.5 9.0 8.9 9.6 C11.4 10.0 12.6 12.4 11.8 14.8 C10.7 12.8 8.7 11.9 6.9 12.3 C5.2 12.6 3.8 13.5 2.8 14.9 Z" fill="#171717" stroke="none"/>
+      <path d="M5.5 19.7 C4.7 21.1 4.1 22.4 3.8 23.6 M7.8 19.7 C8.3 21.1 8.7 22.4 9.0 23.6" stroke-width="1.6"/>
+      <path d="M9.9 3.0 C12.6 1.0 17.6 1.0 20.3 3.2 C22.7 5.2 22.9 8.6 20.7 10.6 C18.6 12.5 14.2 12.5 11.8 10.9 L9.0 13.4 L10.2 10.0 C8.9 8.1 8.6 5.2 9.9 3.0 Z" fill="#fff" stroke-width="1.6"/>
+      <g class="vq">
+        <path d="M14.2 5.6 C14.2 4.5 15.0 3.8 15.9 3.8 C16.8 3.8 17.5 4.5 17.5 5.3 C17.5 6.4 16.2 6.6 15.8 7.3 C15.6 7.6 15.6 7.9 15.6 8.2" stroke-width="1.5"/>
+        <circle cx="15.9" cy="9.6" r="0.7" fill="#171717" stroke="none"/>
+      </g>
+      <g class="vb">
+        <path d="M15.9 4.4 C15.82 5.6 15.82 6.8 15.9 7.9" stroke-width="1.5"/>
+        <circle cx="15.9" cy="9.4" r="0.68" fill="#171717" stroke="none"/>
+      </g>
+    </g></g>
+  </defs>
+</svg>
+
+<div class="pg">
+
+  <header class="pt">
+    <h1>提示图标：品牌小人 + 叹号 · 8 个候选</h1>
+    <p class="lead">
+      你原本那个小人其实是<b>举着一块牌子</b>的（牌子上是三个点）——所以最省力的做法就是把牌子里的东西换掉。
+      <b>V1 就是把品牌那条 SVG 路径原样搬过来</b>，只改了牌子里面的内容，能保证是同一个角色。<br>
+      下面每个候选都给了<b>放大图</b>（看画得对不对）和<b>真实尺寸图</b>（放在真句子里、22px 的样子）。
+      图标本身都能悬停 / 点按出提示。
+    </p>
+    <p class="lead" style="margin-top:16px;padding:14px 16px;border-left:2px solid var(--mark);background:#FBF7F4">
+      <b>这一版是「!」（原来那些是「?」）。</b>换完才发现一件事，值得你先看一秒：
+      <b>「?」是「这里有个问题要解释」，「!」在中文界面里一般是「注意 / 提醒」</b>。
+      挂在那句「聊天内容与截图不留存」后面时，<b>「!」读起来更像一条隐私提醒</b>——比「?」扎眼，也可能有点像在报警。
+      下面是叹号版；右上角那个按钮能<b>一键切回叹号版</b>，你可以来回翻着比。
+    </p>
+    <div class="bar">
+      <button class="tbtn" id="toggleAll" type="button">全部展开 / 收起提示</button>
+      <button class="tbtn" id="bangToggle" type="button">现在是「!」· 点一下换成「?」</button>
+    </div>
+  </header>
+
+  <!-- ===================== 一 ===================== -->
+  <section class="sec">
+    <h2>一、8 个候选</h2>
+    <p class="note">左边大图 78px，右边是真实尺寸（22px）放在真句子里的样子。右侧那个小图标鼠标放上去会出提示。</p>
+
+    <div class="grid">
+
+      <div class="card">
+        <span class="tag">V1<em>原版小人 · 牌子里的点换成 !</em></span>
+        <div class="show">
+          <div class="box"><svg class="ico big" width="78" height="78" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic1"/></svg><div class="cap">放大</div></div>
+          <div class="line"><div class="cap">真实尺寸</div>
+            <span class="txt" style="font-size:12.5px;color:var(--faint)">聊天内容与截图不留存</span>
+            <button class="mi" type="button" aria-label="查看说明"><svg class="ico" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic1"/></svg><span class="mi-tip">只贴需要回复的那几条就够，不用整段复制。内容与截图只用于这一次的生成和识别，不进数据库、不留存；页面另外会记下匿名的使用次数与耗时（不含任何内容，也无法识别到你），用来发现卡顿。</span></button>
+          </div>
+        </div>
+        <p class="why"><b>最忠于原形。</b>就是你 logo 那条路径，一个点没动，只把牌子里的三个点换成「!」。代价：牌子又扁又宽，<b>叹号只有约 5px 高，小尺寸下会糊成一团</b>。</p>
+      </div>
+
+      <div class="card">
+        <span class="tag">V2<em>放大取景 · 头 + 帽子 + 气泡里的 !</em></span>
+        <div class="show">
+          <div class="box"><svg class="ico big" width="78" height="78" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic2"/></svg><div class="cap">放大</div></div>
+          <div class="line"><div class="cap">真实尺寸</div>
+            <span class="txt" style="font-size:12.5px;color:var(--faint)">聊天内容与截图不留存</span>
+            <button class="mi" type="button" aria-label="查看说明"><svg class="ico" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic2"/></svg><span class="mi-tip">只贴需要回复的那几条就够，不用整段复制。内容与截图只用于这一次的生成和识别，不进数据库、不留存；页面另外会记下匿名的使用次数与耗时（不含任何内容，也无法识别到你），用来发现卡顿。</span></button>
+          </div>
+        </div>
+        <p class="why"><b>砍掉身子，把脸和牌子放大。</b>牌子改成你那张大图里的方形气泡（多了「说话」的意思），叹号因此大了不少。仍然是「小人 + 气泡 + !」的完整叙事。</p>
+      </div>
+
+      <div class="card">
+        <span class="tag">V3<em>只留那块牌子 + !</em></span>
+        <div class="show">
+          <div class="box"><svg class="ico big" width="78" height="78" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic3"/></svg><div class="cap">放大</div></div>
+          <div class="line"><div class="cap">真实尺寸</div>
+            <span class="txt" style="font-size:12.5px;color:var(--faint)">聊天内容与截图不留存</span>
+            <button class="mi" type="button" aria-label="查看说明"><svg class="ico" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic3"/></svg><span class="mi-tip">只贴需要回复的那几条就够，不用整段复制。内容与截图只用于这一次的生成和识别，不进数据库、不留存；页面另外会记下匿名的使用次数与耗时（不含任何内容，也无法识别到你），用来发现卡顿。</span></button>
+          </div>
+        </div>
+        <p class="why"><b>小尺寸下最清楚的一个。</b>牌子是小人身上最像「一块标志」的部分，只用它反而认得出来，叹号也能画得最粗最直（约 9px 高）。代价：<b>不懂妙回的人看不出这是个人</b>。</p>
+      </div>
+
+      <div class="card">
+        <span class="tag">V4<em>完整小人 + 旁边飘一个 !</em></span>
+        <div class="show">
+          <div class="box"><svg class="ico big" width="78" height="78" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic4"/></svg><div class="cap">放大</div></div>
+          <div class="line"><div class="cap">真实尺寸</div>
+            <span class="txt" style="font-size:12.5px;color:var(--faint)">聊天内容与截图不留存</span>
+            <button class="mi" type="button" aria-label="查看说明"><svg class="ico" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic4"/></svg><span class="mi-tip">只贴需要回复的那几条就够，不用整段复制。内容与截图只用于这一次的生成和识别，不进数据库、不留存；页面另外会记下匿名的使用次数与耗时（不含任何内容，也无法识别到你），用来发现卡顿。</span></button>
+          </div>
+        </div>
+        <p class="why"><b>最像你那张大图。</b>头、闭眼、身子都在，叹号像画外的一句提醒飘在旁边，不挤在牌子里。这个是我心里的<b>首选</b>——人物完整，叹号够大。</p>
+      </div>
+
+      <div class="card">
+        <span class="tag">V5<em>只留帽子 + !</em></span>
+        <div class="show">
+          <div class="box"><svg class="ico big" width="78" height="78" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic5"/></svg><div class="cap">放大</div></div>
+          <div class="line"><div class="cap">真实尺寸</div>
+            <span class="txt" style="font-size:12.5px;color:var(--faint)">聊天内容与截图不留存</span>
+            <button class="mi" type="button" aria-label="查看说明"><svg class="ico" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic5"/></svg><span class="mi-tip">只贴需要回复的那几条就够，不用整段复制。内容与截图只用于这一次的生成和识别，不进数据库、不留存；页面另外会记下匿名的使用次数与耗时（不含任何内容，也无法识别到你），用来发现卡顿。</span></button>
+          </div>
+        </div>
+        <p class="why"><b>帽子是整张脸上最认得出的东西</b>，且是实心墨块，缩到 14px 也还在。叹号可以画得很大。代价：只剩一顶帽子，<b>容易读成「一顶帽子」而不是「一个人」</b>。</p>
+      </div>
+
+      <div class="card">
+        <span class="tag">V6<em>头就是一个叹号</em></span>
+        <div class="show">
+          <div class="box"><svg class="ico big" width="78" height="78" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic6"/></svg><div class="cap">放大</div></div>
+          <div class="line"><div class="cap">真实尺寸</div>
+            <span class="txt" style="font-size:12.5px;color:var(--faint)">聊天内容与截图不留存</span>
+            <button class="mi" type="button" aria-label="查看说明"><svg class="ico" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic6"/></svg><span class="mi-tip">只贴需要回复的那几条就够，不用整段复制。内容与截图只用于这一次的生成和识别，不进数据库、不留存；页面另外会记下匿名的使用次数与耗时（不含任何内容，也无法识别到你），用来发现卡顿。</span></button>
+          </div>
+        </div>
+        <p class="why"><b>换 ! 之后这一版损失最大。</b>叹号是细长的，塞进脑袋的位置以后<b>圆头就没了</b>：放大看像<b>一把伞 / 一把锄头</b>，缩到 14px 直接读成<b>一个上箭头 ↑</b>。问号版那个「头本身就是标点」的巧劲，在叹号上不成立。</p>
+      </div>
+
+      <div class="card">
+        <span class="tag">V7<em>全细线小人 + !（不填黑）</em></span>
+        <div class="show">
+          <div class="box"><svg class="ico big" width="78" height="78" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic7"/></svg><div class="cap">放大</div></div>
+          <div class="line"><div class="cap">真实尺寸</div>
+            <span class="txt" style="font-size:12.5px;color:var(--faint)">聊天内容与截图不留存</span>
+            <button class="mi" type="button" aria-label="查看说明"><svg class="ico" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic7"/></svg><span class="mi-tip">只贴需要回复的那几条就够，不用整段复制。内容与截图只用于这一次的生成和识别，不进数据库、不留存；页面另外会记下匿名的使用次数与耗时（不含任何内容，也无法识别到你），用来发现卡顿。</span></button>
+          </div>
+        </div>
+        <p class="why"><b>把实心帽改成空心的，整颗都是细线</b>，和那一排灰字一样轻，不会抢视线。代价：<b>最不显眼</b>，很可能会被当成装饰直接划过去。</p>
+      </div>
+
+      <div class="card">
+        <span class="tag">V8<em>小人 + 头顶冒气泡写 !</em></span>
+        <div class="show">
+          <div class="box"><svg class="ico big" width="78" height="78" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic8"/></svg><div class="cap">放大</div></div>
+          <div class="line"><div class="cap">真实尺寸</div>
+            <span class="txt" style="font-size:12.5px;color:var(--faint)">聊天内容与截图不留存</span>
+            <button class="mi" type="button" aria-label="查看说明"><svg class="ico" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic8"/></svg><span class="mi-tip">只贴需要回复的那几条就够，不用整段复制。内容与截图只用于这一次的生成和识别，不进数据库、不留存；页面另外会记下匿名的使用次数与耗时（不含任何内容，也无法识别到你），用来发现卡顿。</span></button>
+          </div>
+        </div>
+        <p class="why"><b>「他脑袋上冒出一个念头」</b>，语义最顺，气泡的形状也和你 logo 里那块一致。代价：小人被压小、气泡又被框线吃掉一圈，<b>细节最多、最容易糊</b>。</p>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ===================== 二 ===================== -->
+  <section class="sec">
+    <h2>二、尺寸阶梯：先看谁先糊</h2>
+    <p class="note">同一行从左到右是 14 / 18 / 22 / 28 / 36 px。<b>真实用法是 22px 左右</b>，14px 那一档是「万一要放到更挤的地方」的底线。左边名字下面那行小字是<b>真的量出来的</b>标点高度（不是估的）——V1 那个数字小得离谱，就是它糊的原因。</p>
+    <div class="ladder">
+      <div class="lrow" data-ic="ic1"><span class="nm">V1 原版小人</span></div>
+      <div class="lrow" data-ic="ic2"><span class="nm">V2 放大取景</span></div>
+      <div class="lrow" data-ic="ic3"><span class="nm">V3 只剩牌子</span></div>
+      <div class="lrow" data-ic="ic4"><span class="nm">V4 小人 + !</span></div>
+      <div class="lrow" data-ic="ic5"><span class="nm">V5 帽子 + !</span></div>
+      <div class="lrow" data-ic="ic6"><span class="nm">V6 头就是 !</span></div>
+      <div class="lrow" data-ic="ic7"><span class="nm">V7 全细线</span></div>
+      <div class="lrow" data-ic="ic8"><span class="nm">V8 头顶冒气泡</span></div>
+    </div>
+
+    <div class="bar">
+      <button class="tbtn" id="zoomAll" type="button">把「放大图」整体在各个尺寸下再放大看一遍</button>
+    </div>
+    <div id="zoombox" style="margin-top:20px;display:none"></div>
+  </section>
+
+  <!-- ===================== 三 ===================== -->
+  <section class="sec">
+    <h2>三、放进 01 区真实位置看</h2>
+    <p class="note">用 <b>V4</b> 和 <b>V6</b> 各放一遍。做法还是那句：承诺留在页面上，图标只负责把后面那一长串收起来。</p>
+
+    <div class="vari">
+      <div class="cap" style="font-family:var(--hand);font-size:15px;letter-spacing:1px;color:var(--sub);margin-bottom:6px">用 V4（小人 + 旁边飘一个 !）</div>
+      <div class="real">
+        <div class="hd"><span class="no">01</span><h3>贴进对话</h3><span class="opt">也可以上传截图</span></div>
+        <textarea rows="4" placeholder="把最近几行聊天记录贴进来，一行一条，最后一行是对方最新发的那条。"></textarea>
+        <div class="shot-row">
+          <button class="shot-btn" type="button"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>上传聊天截图</button>
+          <span class="shot-hint">自动识别成文字 · 最多 3 张</span>
+        </div>
+        <div class="hint-bar">
+          <span class="trust">聊天内容与截图不留存</span>
+          <button class="mi" type="button" aria-label="查看说明"><svg class="ico" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic4"/></svg><span class="mi-tip">只贴需要回复的那几条就够，不用整段复制。内容与截图只用于这一次的生成和识别，不进数据库、不留存；页面另外会记下匿名的使用次数与耗时（不含任何内容，也无法识别到你），用来发现卡顿。</span></button>
+        </div>
+      </div>
+    </div>
+
+    <div class="vari">
+      <div class="cap" style="font-family:var(--hand);font-size:15px;letter-spacing:1px;color:var(--sub);margin-bottom:6px">用 V6（头就是 !）</div>
+      <div class="real">
+        <div class="hd"><span class="no">01</span><h3>贴进对话</h3><span class="opt">也可以上传截图</span></div>
+        <textarea rows="4" placeholder="把最近几行聊天记录贴进来，一行一条，最后一行是对方最新发的那条。"></textarea>
+        <div class="shot-row">
+          <button class="shot-btn" type="button"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>上传聊天截图</button>
+          <span class="shot-hint">自动识别成文字 · 最多 3 张</span>
+        </div>
+        <div class="hint-bar">
+          <span class="trust">聊天内容与截图不留存</span>
+          <button class="mi" type="button" aria-label="查看说明"><svg class="ico" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic6"/></svg><span class="mi-tip">只贴需要回复的那几条就够，不用整段复制。内容与截图只用于这一次的生成和识别，不进数据库、不留存；页面另外会记下匿名的使用次数与耗时（不含任何内容，也无法识别到你），用来发现卡顿。</span></button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== 四 ===================== -->
+  <section class="sec">
+    <h2>四、四条硬约束</h2>
+    <p class="note">
+      ① <b>悬停不是唯一的开启方式</b>——手机没有悬停（手指的「悬停」等于已按下），所以点一下也要出：点一次展开、再点收起、点别处或按 Esc 关掉，同屏只留一个。<br>
+      ② <b>键盘要能用</b>——Tab 走到图标上气泡同样出来。<br>
+      ③ <b>气泡不许顶出屏幕</b>——显示前按图标位置和视口宽度算一次偏移，小尖角跟着挪回去，始终指着图标。<br>
+      ④ <b>图标不能一直是很重的黑</b>——静止时用页面那档灰（#B4B2AD），鼠标放上去才变墨色，这样十几个位置同时出现也不会吵；只在 V6、V8 这种实心帽版本上需要单独试一下灰度够不够。
+    </p>
+  </section>
+
+  <footer>
+    选定后告诉我编号就行，例如「V4」「V6」。<br>
+    想再调也可以直接说：帽子歪一点 / 叹号再胖一点 / 小人再小一点 / 把叹号挪到另一边——我改路径重出，不费事。<br>
+    右上角那个按钮能随时在「?」和「!」之间来回翻，别只凭记忆比。
+  </footer>
+</div>
+
+<script>
+(function () {
+  // ---- 「?」/「!」两版：把每个候选克隆成 #icNb（叹号）/ #icNq（问号），页面只换 <use> 的 href ----
+  // 为什么绕这一圈：CSS 类选择器进不去 <use> 的 shadow tree，实测两版像素一模一样。
+  // 默认 body.bang = 叹号版。
+  var MODE = document.body.classList.contains("bang") ? "b" : "q";
+  (function splitVariants() {
+    var defs = document.querySelector("svg defs");
+    for (var k = 1; k <= 8; k++) {
+      var src = document.getElementById("ic" + k);
+      if (!src) continue;
+      [["q", ".vb"], ["b", ".vq"]].forEach(function (pair) {
+        var c = src.cloneNode(true);
+        c.id = "ic" + k + pair[0];
+        var junk = c.querySelector(pair[1]);      // 丢掉不要的那一版标点
+        if (junk) junk.parentNode.removeChild(junk);
+        src.parentNode.insertBefore(c, src);
+      });
+      src.parentNode.removeChild(src);            // 原来的双版定义不再需要
+    }
+    if (defs) defs.setAttribute("data-split", "1");
+  })();
+  function applyMode() {
+    document.querySelectorAll("use").forEach(function (u) {
+      var m = /^#ic([1-8])[bq]?$/.exec(u.getAttribute("href") || "");
+      if (m) u.setAttribute("href", "#ic" + m[1] + MODE);
+    });
+  }
+  applyMode();
+
+  // ---- 标点在 22px 下到底多高：量出来，别凭感觉 ----
+  // getBBox() 给的是元素「自己那套坐标」的框；V1 外面套着 scale(0.39)，得再乘 getCTM()。
+  function puncBox(id) {
+    var t = document.querySelector("#" + id + MODE + " .v" + MODE);
+    if (!t || !t.getBBox || !t.getCTM) return null;
+    var b = t.getBBox(), m = t.getCTM(), xs = [], ys = [];
+    [[b.x, b.y], [b.x + b.width, b.y], [b.x, b.y + b.height], [b.x + b.width, b.y + b.height]]
+      .forEach(function (p) {
+        xs.push(m.a * p[0] + m.c * p[1] + m.e);
+        ys.push(m.b * p[0] + m.d * p[1] + m.f);
+      });
+    return Math.round((Math.max.apply(null, ys) - Math.min.apply(null, ys)) / 24 * 22 * 10) / 10;
+  }
+  function labelSizes() {
+    document.querySelectorAll(".lrow[data-ic]").forEach(function (row) {
+      var nm = row.querySelector(".nm"), h = puncBox(row.getAttribute("data-ic"));
+      var em = nm.querySelector("em");
+      if (!em) { em = document.createElement("em"); nm.appendChild(em); }
+      em.style.cssText = "display:block;font-style:normal;font-size:10.5px;color:var(--faint);letter-spacing:.5px;margin-top:2px";
+      em.textContent = (MODE === "b" ? "叹号" : "问号") + "在 22px 下高 " + h + "px";
+    });
+  }
+  labelSizes();
+
+  // ---- 尺寸阶梯：按 data-ic 生成 ----
+  var SIZES = [14, 18, 22, 28, 36];
+  document.querySelectorAll(".lrow").forEach(function (row) {
+    var id = row.getAttribute("data-ic");
+    SIZES.forEach(function (s) {
+      var cell = document.createElement("div");
+      cell.className = "lcell";
+      cell.innerHTML = '<svg class="ico" width="' + s + '" height="' + s + '" viewBox="0 0 24 24" aria-hidden="true"><use href="#' + id + MODE + '"/></svg>'
+        + '<div class="cap">' + s + 'px</div>';
+      row.appendChild(cell);
+    });
+  });
+
+  // ---- 再放大一遍看细节 ----
+  var zb = document.getElementById("zoombox");
+  var zopen = false;
+  document.getElementById("zoomAll").addEventListener("click", function () {
+    zopen = !zopen;
+    zb.style.display = zopen ? "block" : "none";
+    if (!zopen || zb.dataset.done) return;
+    zb.dataset.done = "1";
+    var names = { ic1: "V1", ic2: "V2", ic3: "V3", ic4: "V4", ic5: "V5", ic6: "V6", ic7: "V7", ic8: "V8" };
+    Object.keys(names).forEach(function (id) {
+      var box = document.createElement("div");
+      box.className = "lrow";
+      box.innerHTML = '<span class="nm">' + names[id] + '</span>';
+      [96, 64, 44, 30].forEach(function (s) {
+        var c = document.createElement("div");
+        c.className = "lcell";
+        c.innerHTML = '<svg class="ico" width="' + s + '" height="' + s + '" viewBox="0 0 24 24" aria-hidden="true"><use href="#' + id + MODE + '"/></svg><div class="cap">' + s + '</div>';
+        box.appendChild(c);
+      });
+      zb.appendChild(box);
+    });
+  });
+
+  // ---- 提示：悬停 / 点按 / Tab ----
+  var all = [].slice.call(document.querySelectorAll(".mi"));
+
+  function place(btn) {
+    var tip = btn.querySelector(".mi-tip");
+    if (!tip) return;
+    var r = btn.getBoundingClientRect();
+    var tw = tip.offsetWidth;
+    if (!tw) return;
+    var vw = document.documentElement.clientWidth, pad = 14;
+    var left = r.left + r.width / 2 - tw / 2;
+    left = Math.max(pad, Math.min(left, Math.max(pad, vw - pad - tw)));
+    var d = (left + tw / 2) - (r.left + r.width / 2);
+    tip.style.marginLeft = d + "px";
+    var arrow = Math.max(12, Math.min(tw / 2 - d, tw - 12));
+    tip.style.setProperty("--arrow", arrow + "px");
+  }
+  function placeAll() { all.forEach(place); }
+  function closeAll() { all.forEach(function (b) { b.classList.remove("on"); b.setAttribute("aria-expanded", "false"); }); }
+
+  all.forEach(function (btn) {
+    btn.setAttribute("type", "button");
+    btn.setAttribute("aria-expanded", "false");
+    btn.addEventListener("click", function (e) {
+      e.preventDefault(); e.stopPropagation();
+      var on = btn.classList.contains("on");
+      closeAll();
+      if (!on) { place(btn); btn.classList.add("on"); btn.setAttribute("aria-expanded", "true"); }
+    });
+    btn.addEventListener("pointerenter", function () { place(btn); btn.setAttribute("aria-expanded", "true"); });
+    btn.addEventListener("mouseleave", function () { if (!btn.classList.contains("on")) btn.setAttribute("aria-expanded", "false"); });
+    btn.addEventListener("focus", function () { place(btn); });
+    btn.addEventListener("keydown", function (e) { if (e.key === "Escape") { closeAll(); btn.blur(); } });
+  });
+
+  document.addEventListener("click", closeAll);
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeAll(); });
+  window.addEventListener("resize", placeAll);
+  window.addEventListener("load", placeAll);
+  placeAll();
+
+  // ---- 「?」/「!」两版来回切（只是候选页的对照开关，真页面上只会钉死一版） ----
+  var btg = document.getElementById("bangToggle");
+  btg.addEventListener("click", function (e) {
+    e.stopPropagation();
+    var bang = document.body.classList.toggle("bang");
+    MODE = bang ? "b" : "q";
+    applyMode();
+    labelSizes();
+    btg.textContent = bang ? "现在是「!」· 点一下换成「?」" : "现在是「?」· 点一下换成「!」";
+  });
+  if (!document.body.classList.contains("bang")) btg.textContent = "现在是「?」· 点一下换成「!」";
+
+  document.getElementById("toggleAll").addEventListener("click", function (e) {
+    e.stopPropagation();
+    var anyOff = all.some(function (b) { return !b.classList.contains("on"); });
+    all.forEach(function (b) { b.classList.toggle("on", anyOff); b.setAttribute("aria-expanded", anyOff ? "true" : "false"); });
+    if (anyOff) placeAll();
+  });
+})();
+</script>
+</body>
+</html>

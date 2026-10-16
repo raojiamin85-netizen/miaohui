@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>妙回 · 提示小图标 8 个候选</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --ink: #171717;
+    --sub: #6E6E6E;
+    --soft: #9C9A95;
+    --faint: #B4B2AD;
+    --hair: #EBE9E5;
+    --dash: #D9D7D2;
+    --mark: #B5451B;
+    --mark-s: rgba(181,69,27,.09);
+    --hand: "ZCOOL KuaiLe", "PingFang SC", "Microsoft YaHei", sans-serif;
+    --hen: "Caveat", "ZCOOL KuaiLe", cursive;
+    --wave-bold: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 9' preserveAspectRatio='none'%3E%3Cpath d='M2 6 C30 2 70 8 118 4' fill='none' stroke='%23171717' stroke-width='2.6' stroke-linecap='round'/%3E%3C/svg%3E");
+  }
+  html { -webkit-font-smoothing: antialiased; }
+  body { font-family: "PingFang SC", "Microsoft YaHei", system-ui, sans-serif; background: #fff; color: var(--ink); line-height: 1.75; padding: 0 0 90px; }
+  .pg { max-width: 1024px; margin: 0 auto; padding: 0 40px; }
+
+  /* ---------- 原型页自己的排版（正式页面不会带这些） ---------- */
+  .pt { padding: 44px 0 8px; }
+  .pt h1 { font-family: var(--hand); font-size: 30px; font-weight: 400; letter-spacing: 2px; }
+  .pt .lead { font-size: 13.5px; color: var(--sub); margin-top: 14px; line-height: 2; max-width: 720px; }
+  .pt .lead b { font-weight: 400; color: var(--ink); }
+  .sec { margin-top: 54px; }
+  .sec > h2 { font-family: var(--hand); font-size: 21px; font-weight: 400; letter-spacing: 1.5px; padding-bottom: 12px; border-bottom: 1.5px solid var(--hair); }
+  .sec .note { font-size: 12.5px; color: var(--faint); margin-top: 14px; line-height: 1.95; }
+  .bar { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; margin-top: 18px; }
+  .tbtn { border: none; border-bottom: 1.5px dashed var(--dash); background: transparent; padding: 4px 2px 7px; font-family: var(--hand); font-size: 14px; letter-spacing: 1px; color: var(--sub); cursor: pointer; transition: all .25s; }
+  .tbtn:hover { border-bottom-color: var(--ink); color: var(--ink); }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; margin-top: 26px; }
+  .card { position: relative; border: 1px solid var(--hair); border-radius: 4px; padding: 54px 20px 18px; min-height: 168px; }
+  .card .stage { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; min-height: 34px; }
+  .card .txt { font-size: 12.5px; color: var(--faint); letter-spacing: .5px; }
+  .card .tag { position: absolute; top: 12px; left: 16px; font-family: var(--hand); font-size: 13px; letter-spacing: 1px; color: var(--ink); }
+  .card .tag em { font-family: var(--hen); font-style: normal; font-size: 15px; color: var(--faint); margin-left: 6px; }
+  .card .why { font-size: 12px; color: var(--faint); line-height: 1.9; margin-top: 20px; padding-top: 14px; border-top: 1px dashed var(--hair); }
+  .card .why b { font-weight: 400; color: var(--sub); }
+
+  /* ================= 核心：图标 + 悬停提示 ================= */
+  .mi {
+    position: relative; display: inline-flex; align-items: center; justify-content: center;
+    width: 26px; height: 26px; padding: 0; border: none; background: transparent;
+    color: var(--faint); cursor: help; vertical-align: -7px;
+    transition: color .22s ease, background .22s ease;
+  }
+  .mi svg { display: block; }
+  .mi:hover, .mi:focus-visible, .mi.on { color: var(--ink); }
+  .mi:focus-visible { outline: 1.5px dashed var(--dash); outline-offset: 4px; border-radius: 3px; }
+  /* 悬停 / 展开时把整个图标抬到同层其它卡片之上，气泡才不会被旁边的卡盖住 */
+  .mi:hover, .mi:focus-visible, .mi.on { z-index: 30; }
+
+  .mi-tip {
+    position: absolute; bottom: calc(100% + 13px); left: 50%;
+    width: max-content; max-width: min(288px, calc(100vw - 28px)); padding: 12px 15px;
+    background: #fff; border: 1px solid var(--hair); border-radius: 4px;
+    box-shadow: 0 12px 30px rgba(23,23,23,.10);
+    font-size: 12.5px; line-height: 1.9; letter-spacing: .4px; color: var(--sub); text-align: left;
+    font-family: "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+    font-weight: 400;
+    opacity: 0; visibility: hidden; pointer-events: none; z-index: 20;
+    transform: translate(-50%, 7px);
+    transition: opacity .2s ease, transform .26s cubic-bezier(.22,1,.36,1), visibility .2s;
+  }
+  .mi-tip::after {
+    content: ""; position: absolute; left: var(--arrow, 50%); top: 100%; width: 10px; height: 10px;
+    margin-left: -5px; margin-top: -5.5px; background: #fff;
+    border-right: 1px solid var(--hair); border-bottom: 1px solid var(--hair);
+    transform: rotate(45deg); transition: background .2s ease, border-color .2s ease;
+  }
+  .mi:hover .mi-tip, .mi:focus-visible .mi-tip, .mi.on .mi-tip { opacity: 1; visibility: visible; transform: translate(-50%, 0); }
+
+  /* 气泡三种呈现方式 */
+  .mi-tip.t-ink { background: var(--ink); border-color: var(--ink); color: #fff; }
+  .mi-tip.t-ink::after { background: var(--ink); border-color: var(--ink); }
+  .mi-tip.t-quote { background: transparent; border: none; border-left: 2px solid var(--ink); border-radius: 0; box-shadow: none; padding: 2px 0 2px 13px; }
+  .mi-tip.t-quote::after { display: none; }
+
+  /* 各候选的个性 */
+  .mi-e { color: #8E8C87; }                 /* E 实心墨圆：底子本来就重，不能用 faint */
+  .mi-h::after {                             /* H 悬停时下方浮出一道波浪 */
+    content: ""; position: absolute; left: -3px; right: -3px; bottom: -1px; height: 9px;
+    background-image: var(--wave-bold); background-repeat: no-repeat; background-position: center; background-size: 100% 9px;
+    transform: scaleX(0); transform-origin: left center; transition: transform .32s cubic-bezier(.22,1,.36,1);
+  }
+  .mi-h:hover::after, .mi-h:focus-visible::after, .mi-h.on::after { transform: scaleX(1); }
+  .mi-g:hover svg, .mi-a:hover svg { animation: nudge .5s cubic-bezier(.34,1.56,.64,1); }
+  @keyframes nudge { 0% { transform: rotate(0); } 40% { transform: rotate(-13deg) scale(1.08); } 100% { transform: rotate(0); } }
+
+  /* ---------- 真实位置复现 ---------- */
+  .real { border: 1px dashed var(--dash); border-radius: 4px; padding: 30px 26px 34px; margin-top: 24px; }
+  .hd { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: 18px; }
+  .hd .no { font-family: var(--hand); font-size: 13px; color: var(--faint); letter-spacing: 1px; }
+  .hd h3 { font-family: var(--hand); font-size: 24px; font-weight: 400; letter-spacing: 1.5px; }
+  .hd .opt { font-family: var(--hand); font-size: 12px; color: var(--faint); letter-spacing: 1px; }
+  textarea { width: 100%; border: none; border-bottom: 1.5px solid var(--hair); padding: 8px 2px 14px; font-size: 16px; font-family: inherit; resize: vertical; background: transparent; color: var(--ink); line-height: 1.95; }
+  textarea::placeholder { color: var(--soft); }
+  textarea:focus { outline: none; border-bottom-color: var(--ink); }
+  .shot-row { display: flex; align-items: center; gap: 18px; margin-top: 20px; flex-wrap: wrap; }
+  .shot-btn { display: inline-flex; align-items: center; gap: 8px; border: none; border-bottom: 1.5px dashed var(--dash); background: transparent; padding: 4px 2px 7px; font-family: var(--hand); font-size: 15px; letter-spacing: 1px; color: var(--sub); cursor: pointer; }
+  .shot-hint { font-size: 12.5px; color: var(--faint); letter-spacing: .5px; }
+  .hint-bar { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-top: 20px; }
+  .trust { font-size: 13px; letter-spacing: .5px; color: var(--sub); }
+  .vari { margin-top: 34px; }
+  .vari > .cap { font-family: var(--hand); font-size: 15px; letter-spacing: 1px; color: var(--sub); margin-bottom: 6px; }
+  .vari > .cap em { font-family: var(--hen); font-style: normal; font-size: 14px; color: var(--faint); margin-left: 8px; }
+  footer { margin-top: 70px; padding-top: 30px; border-top: 1.5px solid var(--hair); font-size: 12.5px; color: var(--faint); line-height: 2; }
+
+  @media (max-width: 620px) {
+    .pg { padding: 0 20px; }
+    .grid { grid-template-columns: 1fr; }
+  }
+  @media (hover: none), (pointer: coarse) { .mi { width: 34px; height: 34px; } }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <filter id="rough" x="-12%" y="-12%" width="124%" height="124%">
+    <feTurbulence type="fractalNoise" baseFrequency="0.016" numOctaves="2" seed="7" result="n"/>
+    <feDisplacementMap in="SourceGraphic" in2="n" scale="1.5" xChannelSelector="R" yChannelSelector="G"/>
+  </filter>
+</svg>
+
+<div class="pg">
+
+  <header class="pt">
+    <h1>提示小图标 · 8 个候选</h1>
+    <p class="lead">
+      做法：把页面上那些<b>又长又灰的说明</b>收起来，位置换成一个小图标；<b>鼠标放上去</b>（手机上点一下）就把说明浮出来。
+      全部按现在页面的语言画：墨色 <b>#171717</b>、虚线 <b>#D9D7D2</b>、手写体 ZCOOL、手绘抖动滤镜、波浪线。<br>
+      <b>请直接上手试</b>——图标都能悬停 / 点按，看到气泡才算数。选定后告诉我字母即可。
+    </p>
+    <div class="bar">
+      <button class="tbtn" id="toggleAll" type="button">全部展开 / 收起（省得一个个去悬停）</button>
+    </div>
+  </header>
+
+  <!-- ===================== 一、图标候选 ===================== -->
+  <section class="sec">
+    <h2>一、8 个图标候选</h2>
+    <p class="note">每张卡片里的图标都可以悬停 / 点按。气泡内容用的是 01 区那句真实说明。</p>
+
+    <div class="grid">
+
+      <!-- A -->
+      <div class="card">
+        <span class="tag">A<em>手绘圆圈问号</em></span>
+        <div class="stage">
+          <span class="txt">聊天内容与截图不留存</span>
+          <button class="mi mi-a" type="button" aria-label="查看说明">
+            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><g filter="url(#rough)">
+              <path d="M12 21.2 C6.1 21.2 2.5 17.3 2.5 12 C2.5 6.5 6.5 2.8 12 2.8 C17.6 2.8 21.5 6.7 21.5 12 C21.5 17.5 17.5 21.2 12 21.2 Z"/>
+              <path d="M9.1 9.3 C9.1 7.5 10.5 6.4 12.1 6.4 C13.7 6.4 15.1 7.6 15.1 9.1 C15.1 10.9 13.3 11.4 12.4 12.4 C11.9 13 11.8 13.6 11.8 14.3"/>
+              <circle cx="11.9" cy="17.2" r="1" fill="currentColor" stroke="none"/>
+            </g></svg>
+            <span class="mi-tip">只贴需要回复的那几条就够，不用整段复制。内容与截图只用于这一次的生成和识别，不进数据库、不留存；页面另外会记下匿名的使用次数与耗时（不含任何内容，也无法识别到你），用来发现卡顿。</span>
+          </button>
+        </div>
+        <p class="why"><b>最稳的一个。</b>笔画有手抖感，和页面上其它手绘线条是一套。圆圈本身给了「这是个能点的东西」的暗示，问号说明「里面还有话」。放哪都不出错。</p>
+      </div>
+
+      <!-- B -->
+      <div class="card">
+        <span class="tag">B<em>虚线圆问号</em></span>
+        <div class="stage">
+          <span class="txt">聊天内容与截图不留存</span>
+          <button class="mi" type="button" aria-label="查看说明">
+            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="9.1" stroke-dasharray="3.3 3.1"/>
+              <path d="M9.1 9.3 C9.1 7.5 10.5 6.4 12.1 6.4 C13.7 6.4 15.1 7.6 15.1 9.1 C15.1 10.9 13.3 11.4 12.4 12.4 C11.9 13 11.8 13.6 11.8 14.3"/>
+              <circle cx="11.9" cy="17.2" r="1" fill="currentColor" stroke="none"/>
+            </svg>
+            <span class="mi-tip">只贴需要回复的那几条就够，不用整段复制。内容与截图只用于这一次的生成和识别，不进数据库、不留存；页面另外会记下匿名的使用次数与耗时（不含任何内容，也无法识别到你），用来发现卡顿。</span>
+          </button>
+        </div>
+        <p class="why"><b>和现有按钮最统一。</b>页面上的「上传截图」「存为档案」都是虚线下划线，虚线圆是同一句话。比 A 轻一点、不那么抢眼；代价是远看稍碎。</p>
+      </div>
+
+      <!-- C -->
+      <div class="card">
+        <span class="tag">C<em>光问号（无圈）</em></span>
+        <div class="stage">
+          <span class="txt">聊天内容与截图不留存</span>
+          <button class="mi" type="button" aria-label="查看说明">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><g filter="url(#rough)">
+              <path d="M7.4 8.7 C7.4 5.9 9.5 4.3 12.1 4.3 C14.8 4.3 16.9 6.2 16.9 8.7 C16.9 11.4 13.8 12.1 12.4 13.6 C11.7 14.3 11.5 15.2 11.5 16.2"/>
+              <circle cx="11.6" cy="19.7" r="1.15" fill="currentColor" stroke="none"/>
+            </g></svg>
+            <span class="mi-tip">只贴需要回复的那几条就够，不用整段复制。内容与截图只用于这一次的生成和识别，不进数据库、不留存；页面另外会记下匿名的使用次数与耗时（不含任何内容，也无法识别到你），用来发现卡顿。</span>
+          </button>
+        </div>
+        <p class="why"><b>最安静。</b>没有圈，像是句子里随手点的一个标点，几乎不占视觉。适合「你只想让人看到那行灰字、说明纯属备用」的位置；缺点是<b>不太像能点</b>，很多人不会去碰它。</p>
+      </div>
+
+      <!-- D -->
+      <div class="card">
+        <span class="tag">D<em>手绘小星 ✦</em></span>
+        <div class="stage">
+          <span class="txt">聊天内容与截图不留存</span>
+          <button class="mi" type="button" aria-label="查看说明">
+            <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><g filter="url(#rough)">
+              <path d="M12 2.4 C13 6.8 14.5 8.6 21.6 12 C14.5 15.4 13 17.2 12 21.6 C11 17.2 9.5 15.4 2.4 12 C9.5 8.6 11 6.8 12 2.4 Z" fill="currentColor"/>
+            </g></svg>
+            <span class="mi-tip">只贴需要回复的那几条就够，不用整段复制。内容与截图只用于这一次的生成和识别，不进数据库、不留存；页面另外会记下匿名的使用次数与耗时（不含任何内容，也无法识别到你），用来发现卡顿。</span>
+          </button>
+        </div>
+        <p class="why"><b>和页脚那颗 ✦ 是一家人。</b>实心，远看是个亮点，装饰感强、不像在提问。想统一视觉符号的话选它；但它<b>不传达「这里有说明」</b>，得靠悬停才发现。</p>
+      </div>
+
+      <!-- E -->
+      <div class="card">
+        <span class="tag">E<em>实心墨圆问号</em></span>
+        <div class="stage">
+          <span class="txt">聊天内容与截图不留存</span>
+          <button class="mi mi-e" type="button" aria-label="查看说明">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <circle cx="12" cy="12" r="9.4" fill="currentColor"/>
+              <path d="M9.4 9.7 C9.4 8.1 10.6 7.1 12 7.1 C13.4 7.1 14.6 8.1 14.6 9.5 C14.6 11 13.1 11.5 12.3 12.4 C11.9 12.9 11.8 13.4 11.8 14" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="11.9" cy="16.7" r="1" fill="#fff"/>
+            </svg>
+            <span class="mi-tip">只贴需要回复的那几条就够，不用整段复制。内容与截图只用于这一次的生成和识别，不进数据库、不留存；页面另外会记下匿名的使用次数与耗时（不含任何内容，也无法识别到你），用来发现卡顿。</span>
+          </button>
+        </div>
+        <p class="why"><b>最显眼、最像按钮。</b>谁都不会漏看。但整页都是清淡的线条，一颗黑疙瘩很容易变成视线焦点——<b>同一屏里放两三个就会吵</b>。只建议放在「最关键的那一处」。</p>
+      </div>
+
+      <!-- F -->
+      <div class="card">
+        <span class="tag">F<em>便签折角</em></span>
+        <div class="stage">
+          <span class="txt">聊天内容与截图不留存</span>
+          <button class="mi" type="button" aria-label="查看说明">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><g filter="url(#rough)">
+              <path d="M4.3 4.4 C8.8 4 15.2 4.1 19.5 4.6 C19.9 9 19.8 15.6 19.4 19.9 C15 20.3 8.6 20.2 4.5 19.8 C4.1 15.4 4.1 8.6 4.3 4.4 Z"/>
+              <path d="M14.7 4.8 C15 7.4 15 8.4 19.2 8.3"/>
+              <path d="M7.9 10.2 H16.1 M7.9 13.3 H16.1 M7.9 16.4 H12.4"/>
+            </g></svg>
+            <span class="mi-tip">只贴需要回复的那几条就够，不用整段复制。内容与截图只用于这一次的生成和识别，不进数据库、不留存；页面另外会记下匿名的使用次数与耗时（不含任何内容，也无法识别到你），用来发现卡顿。</span>
+          </button>
+        </div>
+        <p class="why"><b>语义最直白</b>——「这里有一张说明的纸」。和页面「写在纸上」的输入框隐喻一致。圈内三根横线在 20px 下有点密，<b>手机上会糊</b>。</p>
+      </div>
+
+      <!-- G -->
+      <div class="card">
+        <span class="tag">G<em>手绘 i</em></span>
+        <div class="stage">
+          <span class="txt">聊天内容与截图不留存</span>
+          <button class="mi mi-g" type="button" aria-label="查看说明">
+            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><g filter="url(#rough)">
+              <path d="M11.9 10.3 C12 13.2 12 15.8 11.8 18.7"/>
+              <circle cx="11.9" cy="5.9" r="1.2" fill="currentColor" stroke="none"/>
+            </g></svg>
+            <span class="mi-tip">只贴需要回复的那几条就够，不用整段复制。内容与截图只用于这一次的生成和识别，不进数据库、不留存；页面另外会记下匿名的使用次数与耗时（不含任何内容，也无法识别到你），用来发现卡顿。</span>
+          </button>
+        </div>
+        <p class="why"><b>「information」的国际通用写法</b>，学过的用户一眼就懂。笔画最少、最干净。但中文语境里它比「?」陌生，而且<b>悬停时有轻微摆动</b>（想让它别太呆）。</p>
+      </div>
+
+      <!-- H -->
+      <div class="card">
+        <span class="tag">H<em>A + 悬停浮出波浪</em></span>
+        <div class="stage">
+          <span class="txt">聊天内容与截图不留存</span>
+          <button class="mi mi-a mi-h" type="button" aria-label="查看说明">
+            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><g filter="url(#rough)">
+              <path d="M12 21.2 C6.1 21.2 2.5 17.3 2.5 12 C2.5 6.5 6.5 2.8 12 2.8 C17.6 2.8 21.5 6.7 21.5 12 C21.5 17.5 17.5 21.2 12 21.2 Z"/>
+              <path d="M9.1 9.3 C9.1 7.5 10.5 6.4 12.1 6.4 C13.7 6.4 15.1 7.6 15.1 9.1 C15.1 10.9 13.3 11.4 12.4 12.4 C11.9 13 11.8 13.6 11.8 14.3"/>
+              <circle cx="11.9" cy="17.2" r="1" fill="currentColor" stroke="none"/>
+            </g></svg>
+            <span class="mi-tip">只贴需要回复的那几条就够，不用整段复制。内容与截图只用于这一次的生成和识别，不进数据库、不留存；页面另外会记下匿名的使用次数与耗时（不含任何内容，也无法识别到你），用来发现卡顿。</span>
+          </button>
+        </div>
+        <p class="why"><b>图标本身是 A</b>，不一样的是：鼠标放上去时，<b>它底下会画出一道波浪</b>（和页面里「生成回复」按钮悬停时那道波浪同一个动作）。静止时完全不占视觉，一动就告诉你「这里能点」。</p>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ===================== 二、气泡呈现 ===================== -->
+  <section class="sec">
+    <h2>二、说明浮出来的样子，也请挑一个</h2>
+    <p class="note">图标定了之后，气泡长什么样是另一件事。下面三个用的是同一个图标（A），只有气泡不同。</p>
+    <div class="grid">
+
+      <div class="card">
+        <span class="tag">①<em>纸便签</em></span>
+        <div class="stage">
+          <span class="txt">聊天内容与截图不留存</span>
+          <button class="mi mi-a" type="button" aria-label="查看说明">
+            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><g filter="url(#rough)">
+              <path d="M12 21.2 C6.1 21.2 2.5 17.3 2.5 12 C2.5 6.5 6.5 2.8 12 2.8 C17.6 2.8 21.5 6.7 21.5 12 C21.5 17.5 17.5 21.2 12 21.2 Z"/>
+              <path d="M9.1 9.3 C9.1 7.5 10.5 6.4 12.1 6.4 C13.7 6.4 15.1 7.6 15.1 9.1 C15.1 10.9 13.3 11.4 12.4 12.4 C11.9 13 11.8 13.6 11.8 14.3"/>
+              <circle cx="11.9" cy="17.2" r="1" fill="currentColor" stroke="none"/>
+            </g></svg>
+            <span class="mi-tip">只贴需要回复的那几条就够，不用整段复制。内容与截图只用于这一次的生成和识别，不进数据库、不留存；页面另外会记下匿名的使用次数与耗时（不含任何内容，也无法识别到你），用来发现卡顿。</span>
+          </button>
+        </div>
+        <p class="why"><b>推荐。</b>白底 + 一根淡边 + 一点投影，像贴上来的一张便签，明确「浮在页面之上」，不会和正文混在一起。小尖角指着图标，谁点出来的很清楚。</p>
+      </div>
+
+      <div class="card">
+        <span class="tag">②<em>墨底反白</em></span>
+        <div class="stage">
+          <span class="txt">聊天内容与截图不留存</span>
+          <button class="mi mi-a" type="button" aria-label="查看说明">
+            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><g filter="url(#rough)">
+              <path d="M12 21.2 C6.1 21.2 2.5 17.3 2.5 12 C2.5 6.5 6.5 2.8 12 2.8 C17.6 2.8 21.5 6.7 21.5 12 C21.5 17.5 17.5 21.2 12 21.2 Z"/>
+              <path d="M9.1 9.3 C9.1 7.5 10.5 6.4 12.1 6.4 C13.7 6.4 15.1 7.6 15.1 9.1 C15.1 10.9 13.3 11.4 12.4 12.4 C11.9 13 11.8 13.6 11.8 14.3"/>
+              <circle cx="11.9" cy="17.2" r="1" fill="currentColor" stroke="none"/>
+            </g></svg>
+            <span class="mi-tip t-ink">只贴需要回复的那几条就够，不用整段复制。内容与截图只用于这一次的生成和识别，不进数据库、不留存；页面另外会记下匿名的使用次数与耗时（不含任何内容，也无法识别到你），用来发现卡顿。</span>
+          </button>
+        </div>
+        <p class="why"><b>最抓眼。</b>和页面里「登录」那个黑按钮是同一块墨。黑白反差强、绝不会被漏读；但整页清淡的调子会被这一块黑压一下，说明本身也不是需要被强调的内容。</p>
+      </div>
+
+      <div class="card">
+        <span class="tag">③<em>墨线引注</em></span>
+        <div class="stage">
+          <span class="txt">聊天内容与截图不留存</span>
+          <button class="mi mi-a" type="button" aria-label="查看说明">
+            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><g filter="url(#rough)">
+              <path d="M12 21.2 C6.1 21.2 2.5 17.3 2.5 12 C2.5 6.5 6.5 2.8 12 2.8 C17.6 2.8 21.5 6.7 21.5 12 C21.5 17.5 17.5 21.2 12 21.2 Z"/>
+              <path d="M9.1 9.3 C9.1 7.5 10.5 6.4 12.1 6.4 C13.7 6.4 15.1 7.6 15.1 9.1 C15.1 10.9 13.3 11.4 12.4 12.4 C11.9 13 11.8 13.6 11.8 14.3"/>
+              <circle cx="11.9" cy="17.2" r="1" fill="currentColor" stroke="none"/>
+            </g></svg>
+            <span class="mi-tip t-quote">只贴需要回复的那几条就够，不用整段复制。内容与截图只用于这一次的生成和识别，不进数据库、不留存；页面另外会记下匿名的使用次数与耗时（不含任何内容，也无法识别到你），用来发现卡顿。</span>
+          </button>
+        </div>
+        <p class="why"><b>最轻。</b>没有底色也没有框，只有左边一根墨线和一段灰字，像是从正文里引出来的一句注。和页面的排版最融；但如果说明正好压在图片或输入框上，会看不清。</p>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ===================== 三、放进真实位置 ===================== -->
+  <section class="sec">
+    <h2>三、放进真实位置看</h2>
+    <p class="note">01 区真实的样子（用 A 图标 + ①纸便签）。下面是两种放法，看看哪种更顺眼。</p>
+
+    <div class="vari">
+      <div class="cap">放法一<em>留一句常驻的信任语，图标跟在它后面</em></div>
+      <div class="real">
+        <div class="hd"><span class="no">01</span><h3>贴进对话</h3><span class="opt">也可以上传截图</span></div>
+        <textarea rows="4" placeholder="把最近几行聊天记录贴进来，一行一条，最后一行是对方最新发的那条。"></textarea>
+        <div class="shot-row">
+          <button class="shot-btn" type="button">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+            上传聊天截图
+          </button>
+          <span class="shot-hint">自动识别成文字 · 最多 3 张</span>
+        </div>
+        <div class="hint-bar">
+          <span class="trust">聊天内容与截图不留存</span>
+          <button class="mi mi-h" type="button" aria-label="查看说明">
+            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><g filter="url(#rough)">
+              <path d="M12 21.2 C6.1 21.2 2.5 17.3 2.5 12 C2.5 6.5 6.5 2.8 12 2.8 C17.6 2.8 21.5 6.7 21.5 12 C21.5 17.5 17.5 21.2 12 21.2 Z"/>
+              <path d="M9.1 9.3 C9.1 7.5 10.5 6.4 12.1 6.4 C13.7 6.4 15.1 7.6 15.1 9.1 C15.1 10.9 13.3 11.4 12.4 12.4 C11.9 13 11.8 13.6 11.8 14.3"/>
+              <circle cx="11.9" cy="17.2" r="1" fill="currentColor" stroke="none"/>
+            </g></svg>
+            <span class="mi-tip">只贴需要回复的那几条就够，不用整段复制。内容与截图只用于这一次的生成和识别，不进数据库、不留存；页面另外会记下匿名的使用次数与耗时（不含任何内容，也无法识别到你），用来发现卡顿。</span>
+          </button>
+        </div>
+      </div>
+      <p class="note">「不留存」这四个字是承诺，必须一直被看见——所以它留在页面上，图标只负责把后面那一长串收起来。</p>
+    </div>
+
+    <div class="vari">
+      <div class="cap">放法二<em>整行只留一个图标，一个字都不留在页面上</em></div>
+      <div class="real">
+        <div class="hd"><span class="no">01</span><h3>贴进对话</h3><span class="opt">也可以上传截图</span></div>
+        <textarea rows="4" placeholder="把最近几行聊天记录贴进来，一行一条，最后一行是对方最新发的那条。"></textarea>
+        <div class="shot-row">
+          <button class="shot-btn" type="button">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+            上传聊天截图
+          </button>
+          <button class="mi mi-h" type="button" aria-label="查看说明">
+            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><g filter="url(#rough)">
+              <path d="M12 21.2 C6.1 21.2 2.5 17.3 2.5 12 C2.5 6.5 6.5 2.8 12 2.8 C17.6 2.8 21.5 6.7 21.5 12 C21.5 17.5 17.5 21.2 12 21.2 Z"/>
+              <path d="M9.1 9.3 C9.1 7.5 10.5 6.4 12.1 6.4 C13.7 6.4 15.1 7.6 15.1 9.1 C15.1 10.9 13.3 11.4 12.4 12.4 C11.9 13 11.8 13.6 11.8 14.3"/>
+              <circle cx="11.9" cy="17.2" r="1" fill="currentColor" stroke="none"/>
+            </g></svg>
+            <span class="mi-tip">只贴需要回复的那几条就够，不用整段复制。内容与截图只用于这一次的生成和识别，不进数据库、不留存；页面另外会记下匿名的使用次数与耗时（不含任何内容，也无法识别到你），用来发现卡顿。</span>
+          </button>
+        </div>
+      </div>
+      <p class="note">页面最干净，但「不留存」这句也要靠悬停才知道——<b>不推荐</b>，列出来是为了让你看到代价。</p>
+    </div>
+  </section>
+
+  <!-- ===================== 四、手机 ===================== -->
+  <section class="sec">
+    <h2>四、手机上没有「悬停」这件事</h2>
+    <p class="note">
+      鼠标能悬停，手指不能——手指「悬停」等于「已经按下了」。所以这个图标必须<b>点一下也能出</b>（再点一下收起，点别处关掉），
+      并且手指能点到的范围会撑到 <b>34px</b>（Apple 建议的可点尺寸是 44px，这里图标小，就用透明热区补足）。<br>
+      下面这个就是点按效果——用鼠标点它一样有效，可以放心试。
+    </p>
+    <div class="grid">
+      <div class="card">
+        <span class="tag">点按<em>和悬停同一套气泡</em></span>
+        <div class="stage">
+          <span class="txt">聊天内容与截图不留存</span>
+          <button class="mi mi-h" type="button" aria-label="查看说明">
+            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><g filter="url(#rough)">
+              <path d="M12 21.2 C6.1 21.2 2.5 17.3 2.5 12 C2.5 6.5 6.5 2.8 12 2.8 C17.6 2.8 21.5 6.7 21.5 12 C21.5 17.5 17.5 21.2 12 21.2 Z"/>
+              <path d="M9.1 9.3 C9.1 7.5 10.5 6.4 12.1 6.4 C13.7 6.4 15.1 7.6 15.1 9.1 C15.1 10.9 13.3 11.4 12.4 12.4 C11.9 13 11.8 13.6 11.8 14.3"/>
+              <circle cx="11.9" cy="17.2" r="1" fill="currentColor" stroke="none"/>
+            </g></svg>
+            <span class="mi-tip">只贴需要回复的那几条就够，不用整段复制。内容与截图只用于这一次的生成和识别，不进数据库、不留存；页面另外会记下匿名的使用次数与耗时（不含任何内容，也无法识别到你），用来发现卡顿。</span>
+          </button>
+        </div>
+        <p class="why">气泡会跟着屏幕宽度收窄，手机上贴着屏幕左边展开，不会顶出边界。</p>
+      </div>
+      <div class="card">
+        <span class="tag">键盘<em>Tab 也能开</em></span>
+        <div class="stage">
+          <span class="txt">按 Tab 走到图标上</span>
+          <button class="mi" type="button" aria-label="查看说明">
+            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><g filter="url(#rough)">
+              <circle cx="12" cy="12" r="9.1" stroke-dasharray="3.3 3.1"/>
+              <path d="M9.1 9.3 C9.1 7.5 10.5 6.4 12.1 6.4 C13.7 6.4 15.1 7.6 15.1 9.1 C15.1 10.9 13.3 11.4 12.4 12.4 C11.9 13 11.8 13.6 11.8 14.3"/>
+              <circle cx="11.9" cy="17.2" r="1" fill="currentColor" stroke="none"/>
+            </g></svg>
+            <span class="mi-tip">只贴需要回复的那几条就够，不用整段复制。内容与截图只用于这一次的生成和识别，不进数据库、不留存；页面另外会记下匿名的使用次数与耗时（不含任何内容，也无法识别到你），用来发现卡顿。</span>
+          </button>
+        </div>
+        <p class="why">用键盘而不是鼠标的人也会得到虚线焦点框，气泡一样出来。屏幕阅读器会把说明读出来。</p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    选好之后告诉我字母就行，例如「A + ①」「H + ①」。<br>
+    定了我再把它接到真实页面上，替换掉现在那一版「点开『说明』才展开」的做法，并按位置长短写每一条气泡文案。
+  </footer>
+</div>
+
+<script>
+(function () {
+  var all = [].slice.call(document.querySelectorAll(".mi"));
+
+  /* 气泡永远不许顶出屏幕：按图标位置和视口宽度算一次水平偏移，箭头跟着挪回去，
+     保证它始终指着图标。手机上尤其需要——那里的图标可能贴在行尾。 */
+  function place(btn) {
+    var tip = btn.querySelector(".mi-tip");
+    if (!tip) return;
+    var r = btn.getBoundingClientRect();
+    var tw = tip.offsetWidth;
+    if (!tw) return;
+    var vw = document.documentElement.clientWidth;
+    var pad = 14;
+    var left = r.left + r.width / 2 - tw / 2;
+    left = Math.max(pad, Math.min(left, Math.max(pad, vw - pad - tw)));
+    var d = (left + tw / 2) - (r.left + r.width / 2);
+    tip.style.marginLeft = d + "px";
+    var arrow = tw / 2 - d;
+    arrow = Math.max(12, Math.min(arrow, tw - 12));
+    tip.style.setProperty("--arrow", arrow + "px");
+  }
+  function placeAll() { all.forEach(place); }
+
+  function closeAll() {
+    all.forEach(function (b) { b.classList.remove("on"); b.setAttribute("aria-expanded", "false"); });
+  }
+
+  all.forEach(function (btn) {
+    btn.setAttribute("type", "button");
+    btn.setAttribute("aria-expanded", "false");
+
+    // 触摸 / 点击：切换
+    btn.addEventListener("click", function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      var on = btn.classList.contains("on");
+      closeAll();
+      if (!on) { place(btn); btn.classList.add("on"); btn.setAttribute("aria-expanded", "true"); }
+    });
+
+    // 鼠标悬停：同步 aria 状态（视觉由 CSS :hover 负责）
+    btn.addEventListener("pointerenter", function () { place(btn); btn.setAttribute("aria-expanded", "true"); });
+    btn.addEventListener("mouseleave", function () {
+      if (!btn.classList.contains("on")) btn.setAttribute("aria-expanded", "false");
+    });
+    btn.addEventListener("focus", function () { place(btn); });
+
+    // 展开时按 Esc 关掉
+    btn.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") { closeAll(); btn.blur(); }
+    });
+  });
+
+  document.addEventListener("click", closeAll);
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeAll(); });
+  window.addEventListener("resize", placeAll);
+  window.addEventListener("load", placeAll);
+  placeAll();
+
+  // 一键全展开，方便一次看完
+  var t = document.getElementById("toggleAll");
+  t.addEventListener("click", function (e) {
+    e.stopPropagation();
+    var anyOff = all.some(function (b) { return !b.classList.contains("on"); });
+    all.forEach(function (b) {
+      b.classList.toggle("on", anyOff);
+      b.setAttribute("aria-expanded", anyOff ? "true" : "false");
+    });
+    if (anyOff) placeAll();
+  });
+})();
+</script>
+</body>
+</html>

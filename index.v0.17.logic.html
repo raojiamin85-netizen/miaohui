@@ -421,6 +421,34 @@ const $ = id => document.getElementById(id);
 const esc = s => { const d = document.createElement("div"); d.textContent = s; return d.innerHTML; };
 let cloud = null, model = null, modelChain = [], selectedIntent = null, selectedPersona = "", personaCustomOn = false, lastTurn = null, generating = false;
 
+/* ============ 匿名使用统计（v0.16 · 方案 A） ============
+   只记「发生了什么」，不记「说了什么」：
+   - 不记聊天原文、不记生成的回复内容
+   - 不记邮箱 / 手机号 / 昵称
+   - 不记 IP、不记设备指纹，也**没有任何跨天能认出同一个人的标识**（所以只有"打开次数"，没有"访客数"）
+   能回答的问题：有没有人在用、生成成不成功、等了多久、哪些意图被选得多、报什么错。
+   上报一律即发即忘，失败静默吞掉——统计绝不能挡住生成，也不能弹任何东西打扰用户。 */
+function pageVer() { const el = document.querySelector(".ver"); return el ? (el.textContent || "").trim() : ""; }
+function track(event, data) {
+  try {
+    if (!cloud) return;
+    // 本地 file:// 打开（改版预览、跑测试）一律不打点——实测这条路也会真的写进线上库，
+    // 不挡的话开发过程会把真实数据淹掉。自动化测试需要断言上报内容时显式开 __trackForce。
+    if (location.protocol === "file:" && !window.__trackForce) return;
+    const row = { event: event, ver: pageVer() };
+    if (data) {
+      if (data.intent) row.intent = String(data.intent).slice(0, 24);
+      if (data.persona) row.persona = String(data.persona).slice(0, 24);
+      if (data.model) row.model = String(data.model).slice(0, 40);
+      if (typeof data.ms === "number" && isFinite(data.ms)) row.ms = Math.round(data.ms);
+      if (typeof data.ok === "boolean") row.ok = data.ok;
+      if (data.err) row.err = String(data.err).slice(0, 60);
+    }
+    const p = cloud.database.from("events").insert(row);
+    if (p && p.then) p.then(() => {}, () => {});
+  } catch (e) {}
+}
+
 /* 模型候选链（2026-10-15 实测后定，见 docs/eval-log.md）。
    起因：用户反馈「生成回复等了两分钟」。实测同一 prompt 的首字时延差 50 倍——
    平台默认的 auto 首字 125.3s（另一次 >75s 完全没有响应），
@@ -537,16 +565,26 @@ function makeShotBox(cfg) {
 
   async function ocrOne(dataUrl) {
     // 识别同样走候选链：图片识别比纯文本慢，同样是「候选不回话就换一个」
-    const out = await callLLM([
-      { role: "system", content: OCR_SYSTEM },
-      { role: "user", content: [{ type: "text", text: cfg.instruction }, { type: "image_url", image_url: { url: dataUrl } }] }
-    ], { temperature: 0.1 });
-    let lines = out.split("\n")
-      .map(l => l.trim().replace(/^[-*•]\s*/, "").replace(/^\d+[.、)]\s*/, ""))
-      .filter(l => l && !/^```/.test(l) && !/^\[.*\]$/.test(l) && !/^EMPTY$/i.test(l));
-    if (cfg.styleMode) lines = lines.map(l => l.replace(/^我[:：]\s*/, "")).filter(l => l && !/^对方[:：]/.test(l));
-    if (!lines.length) throw new Error("empty");
-    return lines;
+    const t = Date.now();
+    let okFlag = true;
+    try {
+      const out = await callLLM([
+        { role: "system", content: OCR_SYSTEM },
+        { role: "user", content: [{ type: "text", text: cfg.instruction }, { type: "image_url", image_url: { url: dataUrl } }] }
+      ], { temperature: 0.1 });
+      let lines = out.split("\n")
+        .map(l => l.trim().replace(/^[-*•]\s*/, "").replace(/^\d+[.、)]\s*/, ""))
+        .filter(l => l && !/^```/.test(l) && !/^\[.*\]$/.test(l) && !/^EMPTY$/i.test(l));
+      if (cfg.styleMode) lines = lines.map(l => l.replace(/^我[:：]\s*/, "")).filter(l => l && !/^对方[:：]/.test(l));
+      if (!lines.length) throw new Error("empty");
+      return lines;
+    } catch (e) {
+      okFlag = false;
+      throw e;
+    } finally {
+      // 截图识别是独立的一次模型调用，慢起来和生成一样卡人，所以单独量
+      track(cfg.styleMode ? "ocr_style" : "ocr_chat", { model: window.__activeModel || "", ms: Date.now() - t, ok: okFlag });
+    }
   }
 
   async function add(files) {
@@ -705,6 +743,8 @@ async function cloudPutArchive(name, text) {
     const ins = await cloud.database.from("style_archives").insert({ name: name, text: text }).select();
     if (ins.error) throw ins.error;
   }
+  // 「主动存成档案」是留存信号：愿意存档案的人才会回来
+  track("archive_save", { ok: true });
 }
 async function cloudDelArchive(name) {
   const { error } = await cloud.database.from("style_archives").delete().eq("name", name).select();
@@ -891,7 +931,7 @@ function renderAcct() {
     box.appendChild(wrap);
   } else {
     const ver = document.createElement("span");
-    ver.className = "ver"; ver.textContent = "V0.15";
+    ver.className = "ver"; ver.textContent = "V0.16";
     const b = document.createElement("button");
     b.type = "button"; b.className = "acct-btn";
     b.innerHTML = '<span class="cloud-dot"></span>登录同步';
@@ -904,6 +944,7 @@ async function afterSignIn() {
   try { const { data } = await cloud.auth.getSession(); session = data || null; } catch (e) { session = null; }
   renderAcct(); renderArchives();
   if (session) { loadAcctEmail(); syncArchives(); }
+  track("signin", { ok: !!session });
 }
 
 $("authTabs").addEventListener("click", e => {
@@ -1054,6 +1095,7 @@ async function init() {
     showStatus("模型服务连接失败，请刷新重试", true); $("go").disabled = true;
   }
   checkNewVersion();
+  track("open", { model: model ? model.id : "", ok: !!model });
 }
 
 /* 平台不给静态资源发 Cache-Control / ETag，浏览器可能长时间拿缓存里的旧版 HTML，
@@ -1228,6 +1270,8 @@ function render(list) {
     cp.className = "copy"; cp.textContent = "复制";
     cp.onclick = () => {
       navigator.clipboard.writeText(c.reply).then(() => {
+        // 最关键的成败指标：用户真的把这条回复拿去用了
+        track("copy", { intent: selectedIntent ? selectedIntent.label : "", persona: getPersona() || "" });
         cp.textContent = "已复制"; cp.classList.add("done");
         setTimeout(() => { cp.textContent = "复制"; cp.classList.remove("done"); }, 1500);
       });
@@ -1337,6 +1381,12 @@ async function generate(adjustment, keepResults) {
   $("go").disabled = true;
   startStages();
   if (!keepResults) $("results").innerHTML = "";
+  // 耗时是产品指标：这一路埋点就是为了下次「怎么又慢了」不用靠用户口头反馈才能发现
+  const genT0 = Date.now();
+  let usedModel = "";
+  const intentLabel = selectedIntent ? selectedIntent.label : "";
+  const personaLabel = getPersona() || "";
+  track(adjustment ? "gen_tweak" : "gen_start", { intent: intentLabel, persona: personaLabel, model: model.id });
   try {
     let messages;
     if (adjustment && lastTurn) {
@@ -1353,17 +1403,30 @@ async function generate(adjustment, keepResults) {
       onProgress: (t) => { const rs = liveReplies(t); window.__live = { n: rs.length, first: rs[0] || "" }; }
     });
     lastTurn = { prompt: messages[messages.length - 2].content, answer };
+    usedModel = window.__activeModel || "";
     stopStages();
     showStatus("", false);
-    render(parseCandidates(answer));
+    const list = parseCandidates(answer);
+    track("gen_ok", { intent: intentLabel, persona: personaLabel, model: usedModel, ms: Date.now() - genT0, ok: true });
+    render(list);
   } catch (e) {
     stopStages();
+    const raw = (e && e.message) || "";
+    const code = (e && e.error && e.error.code) || "";
+    // 只上报「哪一类错」，不上报任何内容
+    let errTag = "unknown";
+    if (e && e.name === "AbortError") errTag = "canceled";
+    else if (/first token/i.test(raw)) errTag = "first_token_timeout";
+    else if (/bad json/i.test(raw)) errTag = "bad_json";
+    else if (/empty/i.test(raw)) errTag = "empty";
+    else if (/no model|all candidates/i.test(raw)) errTag = "no_model";
+    else if (code) errTag = code;
+    track("gen_fail", { intent: intentLabel, persona: personaLabel, model: usedModel, ms: Date.now() - genT0, ok: false, err: errTag });
     if (e && e.name === "AbortError") { showStatus("已取消", false); }
     else {
-      const code = (e && e.error && e.error.code) || "";
       let msg = "生成失败了，点「生成回复」重试";
       // 模型返回了但内容不可用（没吐完 / 不是合法 JSON），和网络类故障分开说
-      if (/bad json|empty|no model|all candidates|first token/.test((e && e.message) || "")) msg = "模型这次没给出可用结果，点「生成回复」再试一次";
+      if (/bad json|empty|no model|all candidates|first token/.test(raw)) msg = "模型这次没给出可用结果，点「生成回复」再试一次";
       if (code.startsWith("quota_")) msg = "今天的用量用完了，明天再来试试";
       else if (code.startsWith("auth_")) msg = "服务鉴权异常，请刷新页面重试";
       else if (code.startsWith("gateway_") || code.startsWith("model_")) msg = "模型服务开小差了，稍等几秒重试一次";

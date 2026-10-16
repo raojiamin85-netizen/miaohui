@@ -21,6 +21,9 @@ const DIR = path.resolve(__dirname, "..");
 const URL = "file:///" + DIR.replace(/\\/g, "/") + "/index.html";
 const LOG = path.join(__dirname, "model-chain-report.txt");
 
+let PAGE_VER = "";
+try { PAGE_VER = JSON.parse(fs.readFileSync(path.join(DIR, "version.json"), "utf8")).version; } catch (e) {}
+
 const lines = [];
 let pass = 0, fail = 0;
 const check = (name, cond, extra) => {
@@ -119,7 +122,7 @@ const DEFAULTS = models([
 ]);
 
 (async () => {
-  lines.push("妙回 V0.15 模型候选链 / 首字超时兜底 / 版本自检 回归测试");
+  lines.push("妙回 " + PAGE_VER + " 模型候选链 / 首字超时兜底 / 版本自检 回归测试");
   lines.push("时间：" + new Date().toISOString());
   lines.push("");
   const browser = await chromium.launch({ channel: "msedge" });
