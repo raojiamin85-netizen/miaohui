@@ -119,16 +119,10 @@ node scripts/shot-v018.cjs            # 版面与提示图标 28 例
 node scripts/verify-events.cjs        # 线上埋点权限实测（能写不能读）
 node scripts/e2e-real-latency.cjs     # 真实接口端到端耗时（会真的调用模型）
 node scripts/check-live.cjs           # 线上逐字节一致性
+node scripts/run-eval-50.cjs          # 生成质量盲评：真实接口出 150 条候选（约 2 分钟，会自动拦截埋点写入）
 ```
 
-跑一次生成质量盲评（真实接口，50 条 × 3 候选；会真的调用模型，约 2 分钟）：
-
-```bash
-node scripts/run-eval-50.cjs                       # 生成 150 条候选（自动拦截埋点写入，不污染线上统计）
-node scripts/check-eval-rules.cjs                  # 机器规则核查（可加 MH_RAW/MH_RULES_OUT 做多版本同口径对比）
-node scripts/build-blind-eval.cjs                  # 洗牌剥身份，产出评分者看的那一份
-node scripts/join-eval.cjs                         # 合并两位评分者的分数，还原到意图与身份
-```
+盲评的后三步（规则核查 → 洗牌剥身份 → 合并两位评分者）见 `scripts/`，方法与数据见 [`docs/eval-log.md`](docs/eval-log.md)。
 
 ## 已知边界与取舍
 
